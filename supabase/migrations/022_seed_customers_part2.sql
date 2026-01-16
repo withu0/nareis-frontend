@@ -1,0 +1,2 @@
+-- Seed data cleared - no sample customers
+-- This file has been intentionally emptied to remove sample data
