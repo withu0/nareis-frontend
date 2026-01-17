@@ -6,14 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { signInWithGoogle, signInWithLinkedIn } from '@/lib/socialAuth';
 
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, user } = useAuth();
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -22,16 +21,15 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await signIn(email, password);
+    const result = await signIn(email, password);
 
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    if (result.error) {
+      toast({ title: 'Error', description: result.error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Success', description: 'Logged in successfully!' });
       
       // Check if user is admin and redirect accordingly
-      const adminEmails = ['admin@nareis.org', 'rick@theraisegroup.com'];
-      if (adminEmails.includes(email.toLowerCase())) {
+      if (user?.role === 'admin' || ['admin@nareis.org', 'rick@theraisegroup.com'].includes(email.toLowerCase())) {
         navigate('/admin');
       } else {
         navigate('/dashboard');

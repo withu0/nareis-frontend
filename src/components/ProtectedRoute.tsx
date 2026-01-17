@@ -1,57 +1,21 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   const location = useLocation();
-  const [memberStatus, setMemberStatus] = useState<{
-    approvalStatus: string | null;
-    subscriptionStatus: string | null;
-    onboardingCompleted: boolean;
-  } | null>(null);
-  const [checkingStatus, setCheckingStatus] = useState(true);
 
-  useEffect(() => {
-    if (user) {
-      checkMemberStatus();
-    } else {
-      setCheckingStatus(false);
-    }
-  }, [user]);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
-  const checkMemberStatus = async () => {
-    if (!user) {
-      setCheckingStatus(false);
-      return;
-    }
-    
-    setCheckingStatus(true);
-    try {
-      const { data, error } = await supabase
-        .from('customers')
-        .select('approval_status, subscription_status, onboarding_completed')
-        .eq('id', user.id)
-        .single();
-
-      if (error) {
-        console.error('Error checking member status:', error);
-        setMemberStatus({ approvalStatus: 'approved', subscriptionStatus: 'active', onboardingCompleted: true });
-      } else if (data) {
-        setMemberStatus({
-          approvalStatus: data.approval_status || 'approved',
-          subscriptionStatus: data.subscription_status || 'pending',
-          onboardingCompleted: data.onboarding_completed || false
-        });
-      }
-    } catch (err) {
-      console.error('Exception checking member status:', err);
-      setMemberStatus({ approvalStatus: 'approved', subscriptionStatus: 'active', onboardingCompleted: true });
-    } finally {
-      setCheckingStatus(false);
-    }
-  };
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
 
   if (loading || checkingStatus) {
     return (
@@ -72,17 +36,17 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   // Check if onboarding is incomplete - redirect to complete it
-  if (!memberStatus?.onboardingCompleted) {
+  if (!user.onboardingCompleted) {
     return <Navigate to="/onboarding" replace />;
   }
 
   // Check subscription status - must have active subscription
-  if (memberStatus?.subscriptionStatus !== 'active') {
+  if (user.subscriptionStatus !== 'active') {
     return <Navigate to="/onboarding" state={{ step: 6, message: 'Please complete payment to access member features.' }} replace />;
   }
 
   // Check approval status
-  if (memberStatus?.approvalStatus === 'pending' || memberStatus?.approvalStatus === 'rejected') {
+  if (user.approvalStatus === 'pending' || user.approvalStatus === 'rejected') {
     return <Navigate to="/pending-approval" replace />;
   }
 

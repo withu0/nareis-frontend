@@ -4,7 +4,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Download, ExternalLink, CreditCard, Loader2, FileText } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { userAPI, stripeAPI } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface Payment {
@@ -19,40 +20,43 @@ interface Payment {
 }
 
 export default function PaymentHistory() {
+  const { user } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [portalLoading, setPortalLoading] = useState(false);
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPaymentHistory();
-  }, []);
+    if (user) {
+      fetchPaymentHistory();
+    }
+  }, [user]);
 
   const fetchPaymentHistory = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Fetch customer info
-    const { data: customerData } = await supabase
-      .from('customers')
-      .select('stripe_customer_id')
-      .eq('id', user.id)
-      .single();
-
-    if (customerData) {
-      setStripeCustomerId(customerData.stripe_customer_id);
+    try {
+      const response = await userAPI.getSubscription();
+      if (response.data) {
+        setStripeCustomerId(response.data.stripeCustomerId || null);
+        if (response.data.paymentHistory) {
+          setPayments(response.data.paymentHistory.map((p: any) => ({
+            id: p.id,
+            created_at: p.createdAt,
+            amount: p.amount,
+            currency: 'usd',
+            status: p.status,
+            description: 'Membership Payment',
+            invoice_id: '',
+            invoice_url: p.invoiceUrl,
+          })));
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch payment history:', error);
+    } finally {
+      setLoading(false);
     }
-
-    const { data, error } = await supabase
-      .from('payment_history')
-      .select('*')
-      .eq('member_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (!error && data) {
-      setPayments(data);
-    }
-    setLoading(false);
   };
 
   const openBillingPortal = async () => {
@@ -63,16 +67,14 @@ export default function PaymentHistory() {
 
     setPortalLoading(true);
     try {
-      const returnUrl = `${window.location.origin}/profile?tab=payments`;
-      const { data, error } = await supabase.functions.invoke('create-portal-session', {
-        body: { customerId: stripeCustomerId, returnUrl }
-      });
-
-      if (error) throw error;
-      if (data?.success && data?.url) {
-        window.location.href = data.url;
+      const response = await stripeAPI.getBillingPortal();
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      if (response.data?.url) {
+        window.location.href = response.data.url;
       } else {
-        throw new Error(data?.error || 'Failed to open portal');
+        throw new Error('Failed to open portal');
       }
     } catch (err: any) {
       toast.error(err.message || 'Failed to open billing portal');

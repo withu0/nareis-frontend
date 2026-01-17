@@ -1,35 +1,76 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams, useNavigate } from 'react-router-dom';
+import { authAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { emailService } from '@/lib/emailService';
 
 export default function ResetPassword() {
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const { resetPassword } = useAuth();
+  const [reset, setReset] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // If token exists, show reset form; otherwise show email form
+  useEffect(() => {
+    if (token) {
+      setReset(true);
+    }
+  }, [token]);
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await resetPassword(email);
+    try {
+      const response = await authAPI.forgotPassword(email);
+      if (response.error) {
+        toast({ title: 'Error', description: response.error, variant: 'destructive' });
+      } else {
+        toast({ title: 'Success', description: 'Password reset email sent! Check your inbox.' });
+        setSent(true);
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to send reset email', variant: 'destructive' });
+    }
+    setLoading(false);
+  };
 
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      // Send password reset email
-      const resetLink = `${window.location.origin}/reset-password?token=example`;
-      await emailService.sendPasswordReset(email, 'User', resetLink);
-      
-      toast({ title: 'Success', description: 'Password reset email sent!' });
-      setSent(true);
+  const handleResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (password !== confirmPassword) {
+      toast({ title: 'Error', description: 'Passwords do not match', variant: 'destructive' });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({ title: 'Error', description: 'Password must be at least 6 characters', variant: 'destructive' });
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await authAPI.resetPassword(token!, password);
+      if (response.error) {
+        toast({ title: 'Error', description: response.error, variant: 'destructive' });
+      } else {
+        toast({ title: 'Success', description: 'Password reset successfully! Redirecting to login...' });
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to reset password', variant: 'destructive' });
     }
     setLoading(false);
   };
@@ -40,11 +81,43 @@ export default function ResetPassword() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Reset Password</CardTitle>
-          <CardDescription>Enter your email to receive a password reset link</CardDescription>
+          <CardDescription>
+            {reset ? 'Enter your new password' : 'Enter your email to receive a password reset link'}
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {!sent ? (
-            <form onSubmit={handleSubmit} className="space-y-4">
+          {reset ? (
+            // Reset password form
+            <form onSubmit={handleResetSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="password">New Password</Label>
+                <Input 
+                  id="password" 
+                  type="password" 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  minLength={6}
+                />
+              </div>
+              <div>
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input 
+                  id="confirmPassword" 
+                  type="password" 
+                  value={confirmPassword} 
+                  onChange={(e) => setConfirmPassword(e.target.value)} 
+                  required 
+                  minLength={6}
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? 'Resetting...' : 'Reset Password'}
+              </Button>
+            </form>
+          ) : !sent ? (
+            // Email form
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
               <div>
                 <Label htmlFor="email">Email</Label>
                 <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />

@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, CreditCard, TrendingUp, TrendingDown, AlertCircle, Settings } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { supabase } from '@/lib/supabase';
+import { stripeAPI, userAPI } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import BillingPortalButton from './BillingPortalButton';
 
@@ -15,28 +16,36 @@ const tiers = [
 ];
 
 export default function SubscriptionManagement() {
+  const { user } = useAuth();
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchSubscription();
-  }, []);
+    if (user) {
+      fetchSubscription();
+    }
+  }, [user]);
 
   const fetchSubscription = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabase
-      .from('customers')
-      .select('membership_tier, subscription_status, renewal_date, stripe_subscription_id, stripe_customer_id')
-      .eq('id', user.id)
-      .single();
-
-    setSubscription(data);
-    setStripeCustomerId(data?.stripe_customer_id || null);
-    setLoading(false);
-
+    try {
+      const response = await userAPI.getSubscription();
+      if (response.data) {
+        setSubscription({
+          membership_tier: response.data.membershipTier,
+          subscription_status: response.data.subscriptionStatus,
+          stripe_subscription_id: response.data.stripeSubscriptionId,
+          stripe_customer_id: response.data.stripeCustomerId,
+        });
+        setStripeCustomerId(response.data.stripeCustomerId || null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscription:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
 

@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Check, CreditCard, Shield, Lock, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { stripeAPI } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface PaymentStepProps {
@@ -33,6 +34,8 @@ export default function PaymentStep({ data, onComplete }: PaymentStepProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { user } = useAuth();
   
   const tier = data.membershipTier || 'foundation';
   const priceInfo = tierPrices[tier] || tierPrices.foundation;
@@ -43,187 +46,32 @@ export default function PaymentStep({ data, onComplete }: PaymentStepProps) {
     setError(null);
     
     try {
-      console.log('\n═══════════════════════════════════════════════');
-      console.log('>>> PAYMENT STEP: STARTING CHECKOUT PROCESS <<<');
-      console.log('═══════════════════════════════════════════════');
-      
-      // Get session with retries (critical for reliability)
-      console.log('[AUTH] Getting user session...');
-      let userId: string | null = null;
-      let userEmail: string | null = null;
-      
-      const maxAuthRetries = 3;
-      for (let attempt = 1; attempt <= maxAuthRetries; attempt++) {
-        console.log(`[AUTH] Attempt ${attempt}/${maxAuthRetries}`);
-        
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error(`[AUTH] Error on attempt ${attempt}:`, sessionError);
-          if (attempt === maxAuthRetries) {
-            throw new Error('Could not verify your session. Please refresh and try again.');
-          }
-          await new Promise(resolve => setTimeout(resolve, 500));
-          continue;
-        }
-        
-        if (sessionData?.session?.user) {
-          userId = sessionData.session.user.id;
-          userEmail = sessionData.session.user.email || null;
-          console.log('[AUTH] ✅ Session verified');
-          console.log('[AUTH]   User ID:', userId);
-          console.log('[AUTH]   Email:', userEmail);
-          break;
-        }
-        
-        if (attempt < maxAuthRetries) {
-          console.warn('[AUTH] No session found, retrying...');
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-      }
-
-      if (!userId || !userEmail) {
-        console.error('[AUTH] ❌ Failed to get valid session after retries');
-        setError('Session expired. Please refresh the page and try again.');
+      // Check if user is authenticated
+      if (!user) {
+        setError('Please log in to continue with payment.');
         setLoading(false);
         return;
       }
 
-      console.log('[AUTH]   Selected Tier:', tier);
-
-      // CRITICAL: Ensure customer record exists BEFORE payment
-      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('[CUSTOMER] CHECKING/CREATING CUSTOMER RECORD');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+      console.log('[STRIPE] Creating checkout session...');
+      console.log('[STRIPE] User ID:', user.id);
+      console.log('[STRIPE] Tier:', tier);
       
-      const { data: existingCustomer, error: lookupError } = await supabase
-        .from('customers')
-        .select('id, auth_id, email, full_name, membership_tier, subscription_status, onboarding_completed')
-        .eq('auth_id', userId)
-        .maybeSingle();
-
-      if (lookupError && lookupError.code !== 'PGRST116') {
-        console.error('[CUSTOMER] ❌ Database lookup error:', lookupError);
-        setError('Database error. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      if (existingCustomer) {
-        console.log('[CUSTOMER] ✅ Found existing customer record');
-        console.log('[CUSTOMER]   ID:', existingCustomer.id);
-        console.log('[CUSTOMER]   Email:', existingCustomer.email);
-        console.log('[CUSTOMER]   Current Tier:', existingCustomer.membership_tier);
-        console.log('[CUSTOMER]   Current Status:', existingCustomer.subscription_status);
-        console.log('[CUSTOMER] Updating to pending for new purchase...');
-        
-        // Update to pending status for new payment
-        const { error: updateError } = await supabase
-          .from('customers')
-          .update({
-            membership_tier: tier,
-            subscription_status: 'pending',
-            onboarding_completed: false,
-            updated_at: new Date().toISOString()
-          })
-          .eq('auth_id', userId);
-
-        if (updateError) {
-          console.error('[CUSTOMER] ❌ Update failed:', updateError);
-          setError('Could not update membership. Please try again.');
-          setLoading(false);
-          return;
-        }
-        
-        console.log('[CUSTOMER] ✅ Customer updated successfully');
-      } else {
-        console.log('[CUSTOMER] ℹ️ No existing customer found, creating new...');
-        
-        // Create customer record with all onboarding data
-        const customerData = {
-          auth_id: userId,
-          email: userEmail,
-          full_name: data.fullName || (data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : 'Member'),
-          first_name: data.firstName || '',
-          last_name: data.lastName || '',
-          phone: data.phone || null,
-          organization: data.organization || null,
-          job_title: data.jobTitle || null,
-          membership_tier: tier,
-          subscription_status: 'pending',
-          membership_status: 'pending',
-          onboarding_completed: false,
-          approval_status: 'pending',
-          chapter_id: data.chapter || null,
-          interests: data.interests || [],
-          profile_picture_url: data.profilePictureUrl || null,
-          role: 'member',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        console.log('[CUSTOMER] Creating with data:', {
-          email: customerData.email,
-          tier: customerData.membership_tier,
-          status: customerData.subscription_status
-        });
-
-        const { error: createError } = await supabase
-          .from('customers')
-          .insert(customerData);
-
-        if (createError) {
-          console.error('[CUSTOMER] ❌ Create failed:', createError);
-          console.error('[CUSTOMER] Error details:', createError);
-          setError('Could not create customer record. Please contact support.');
-          setLoading(false);
-          return;
-        }
-
-        console.log('[CUSTOMER] ✅ Customer record created successfully');
-      }
-
-      // Small delay to ensure DB write is committed before Stripe redirect
-      console.log('[CUSTOMER] Waiting 300ms for DB commit...');
-      await new Promise(resolve => setTimeout(resolve, 300));
-
-      // Now create Stripe checkout session
-      console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      console.log('[STRIPE] CREATING CHECKOUT SESSION');
-      console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-      
-      const checkoutData = {
-        priceId: priceInfo.priceId,
-        planName: tierName,
-        amount: priceInfo.amount,
-        isRecurring: priceInfo.isRecurring,
-        userId: userId,
-        userEmail: userEmail,
-        tier: tier,
+      const response = await stripeAPI.createCheckoutSession({
+        tier,
         successUrl: `${window.location.origin}/onboarding?payment=success&tier=${tier}`,
-        cancelUrl: `${window.location.origin}/onboarding?payment=cancel`
-      };
-      
-      console.log('[STRIPE] Request data:', {
-        tier: checkoutData.tier,
-        amount: checkoutData.amount,
-        userId: checkoutData.userId.substring(0, 8) + '...'
-      });
-
-      const response = await supabase.functions.invoke('create-checkout-session', {
-        body: checkoutData
+        cancelUrl: `${window.location.origin}/onboarding?payment=cancel`,
       });
 
       if (response.error) {
-        console.error('[STRIPE] ❌ Function error:', response.error);
-        setError('Payment system unavailable. Please try again or contact support.');
+        console.error('[STRIPE] ❌ Error:', response.error);
+        setError(response.error || 'Payment system unavailable. Please try again or contact support.');
         setLoading(false);
         return;
       }
 
       if (!response.data?.url) {
         console.error('[STRIPE] ❌ No checkout URL returned');
-        console.error('[STRIPE] Response:', response.data);
         setError('Could not create checkout session. Please try again.');
         setLoading(false);
         return;
@@ -237,7 +85,6 @@ export default function PaymentStep({ data, onComplete }: PaymentStepProps) {
       
     } catch (err: any) {
       console.error('\n❌ PAYMENT ERROR:', err);
-      console.error('Stack:', err.stack);
       setError(err.message || 'Payment processing failed. Please try again or contact support.');
       setLoading(false);
     }

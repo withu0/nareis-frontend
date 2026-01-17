@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Loader2, CreditCard } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { stripeAPI } from '@/lib/api';
 import { toast } from 'sonner';
 
 interface BillingPortalButtonProps {
@@ -25,21 +25,16 @@ export default function BillingPortalButton({
 
     setLoading(true);
     try {
-      const returnUrl = `${window.location.origin}/profile?tab=subscription`;
+      const response = await stripeAPI.getBillingPortal();
 
-      const { data, error } = await supabase.functions.invoke('create-portal-session', {
-        body: {
-          customerId: stripeCustomerId,
-          returnUrl
-        }
-      });
+      if (response.error) {
+        throw new Error(response.error);
+      }
 
-      if (error) throw error;
-
-      if (data?.success && data?.url) {
-        window.location.href = data.url;
+      if (response.data?.url) {
+        window.location.href = response.data.url;
       } else {
-        throw new Error(data?.error || 'Failed to create portal session');
+        throw new Error('Failed to create portal session');
       }
     } catch (err: any) {
       console.error('Portal error:', err);
