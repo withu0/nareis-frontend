@@ -1,14 +1,15 @@
 import { SEOHead } from '@/components/SEOHead';
-import { BackButton } from '@/components/ui/back-button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useState, useEffect } from 'react';
 import { SwipeableTabs } from '@/components/mobile/SwipeableTabs';
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { BookOpen, Calendar, Heart, TrendingUp, Users, Briefcase, Download, Video, BarChart3, Play } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { BookOpen, Calendar, Heart, TrendingUp, Users, Briefcase, Download, Video, BarChart3, Play, ArrowUpRight, Award, Target, Zap, MessageSquare, Bell, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import MembershipStatusCard from '@/components/dashboard/MembershipStatusCard';
@@ -64,10 +65,10 @@ export default function Dashboard() {
 
 
   const stats = [
-    { title: 'Saved Resources', value: '18', icon: BookOpen, color: 'text-blue-600' },
-    { title: 'Events Registered', value: '3', icon: Calendar, color: 'text-green-600' },
-    { title: 'Favorites', value: '12', icon: Heart, color: 'text-red-600' },
-    { title: 'Profile Views', value: '47', icon: TrendingUp, color: 'text-purple-600' }
+    { title: 'Saved Resources', value: '18', icon: BookOpen, color: 'text-teal-600', bgColor: 'bg-teal-50', trend: '+12%' },
+    { title: 'Events Registered', value: '3', icon: Calendar, color: 'text-emerald-600', bgColor: 'bg-emerald-50', trend: '+25%' },
+    { title: 'Network Connections', value: '47', icon: Users, color: 'text-cyan-600', bgColor: 'bg-cyan-50', trend: '+8%' },
+    { title: 'Learning Progress', value: '68%', icon: Target, color: 'text-indigo-600', bgColor: 'bg-indigo-50', trend: '+15%' }
   ];
 
   // ROI Analytics Data
@@ -104,15 +105,22 @@ export default function Dashboard() {
 
   // Define tab content for swipeable tabs (mobile)
   const overviewContent = (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="grid grid-cols-2 gap-4">
         {stats.map((stat, idx) => (
-          <Card key={idx}>
+          <Card key={idx} className="relative overflow-hidden border-0 shadow-lg">
+            <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bgColor} rounded-full -mr-12 -mt-12 opacity-50`}></div>
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium">{stat.title}</CardTitle>
+              <div className={`p-2 ${stat.bgColor} rounded-lg w-fit mb-2`}>
+                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              </div>
+              <CardTitle className="text-xs font-medium text-gray-600">{stat.title}</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
+              <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+              <Badge variant="outline" className="text-xs mt-1 border-emerald-200 text-emerald-700">
+                {stat.trend}
+              </Badge>
             </CardContent>
           </Card>
         ))}
@@ -128,13 +136,25 @@ export default function Dashboard() {
 
   const roiContent = (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-        <CardHeader>
-          <CardTitle className="text-xl">Your Membership ROI</CardTitle>
+      <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500">
+        <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
+        <CardHeader className="relative">
+          <div className="flex items-center gap-2 mb-2">
+            <div className="bg-white/20 backdrop-blur-sm p-2 rounded-lg">
+              <TrendingUp className="h-5 w-5 text-white" />
+            </div>
+            <Badge className="bg-white/20 text-white border-white/30 text-xs">This Year</Badge>
+          </div>
+          <CardTitle className="text-2xl text-white">Your Membership ROI</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="text-4xl font-bold text-green-600">${totalROI.toLocaleString()}</div>
-          <p className="text-xs text-muted-foreground mt-2">Annual investment: $2,500</p>
+        <CardContent className="relative">
+          <div className="flex items-end gap-3 mb-3">
+            <div className="text-5xl font-bold text-white">${totalROI.toLocaleString()}</div>
+            <div className="bg-emerald-400/30 backdrop-blur-sm px-2 py-1 rounded-full mb-1">
+              <p className="text-lg font-bold text-white">+{((totalROI / 2500) * 100).toFixed(0)}%</p>
+            </div>
+          </div>
+          <p className="text-sm text-teal-100">Annual investment: $2,500</p>
         </CardContent>
       </Card>
       <ROIMetricsCard metrics={roiMetrics} />
@@ -148,39 +168,59 @@ export default function Dashboard() {
   ];
 
   return (
-    <>
+    <DashboardLayout>
       <SEOHead 
         title="Member Dashboard - NAREIS"
         description="Your personalized NAREIS member dashboard with analytics, events, resources, and networking opportunities."
       />
       {showTour && <InteractiveTour autoStart={true} onComplete={() => setShowTour(false)} />}
       
-      <div className="min-h-screen bg-gray-50" data-tour="dashboard">
-        <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-8 md:py-12">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-              <div>
-                <h1 className="text-2xl md:text-4xl font-bold mb-2">Welcome back, {userName}!</h1>
-                <p className="text-blue-100 text-sm md:text-base">Your personalized NAREIS.org member portal</p>
+      <div data-tour="dashboard">
+        {/* Modern Header with Gradient */}
+        <div className="relative bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 text-white overflow-hidden">
+          {/* Background Pattern */}
+          <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent"></div>
+          
+          <div className="relative container mx-auto px-4 py-8 md:py-12">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-3">
+                  <Badge className="bg-white/20 text-white border-white/30 hover:bg-white/30">
+                    <Zap className="w-3 h-3 mr-1" />
+                    Premium Member
+                  </Badge>
+                  <Badge className="bg-emerald-500/20 text-white border-emerald-300/30">
+                    Active
+                  </Badge>
+                </div>
+                <h1 className="text-3xl md:text-5xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-teal-100">
+                  Welcome back, {userName}!
+                </h1>
+                <p className="text-teal-50 text-sm md:text-lg font-medium">
+                  Your personalized NAREIS member dashboard
+                </p>
               </div>
-              {!tourCompleted && (
-                <Button 
-                  variant="outline" 
-                  className="bg-white/10 hover:bg-white/20 text-white border-white/30 min-h-[44px]"
-                  onClick={() => setShowTour(true)}
-                >
-                  <Play className="h-4 w-4 mr-2" />
-                  <span className="hidden sm:inline">Start Platform Tour</span>
-                  <span className="sm:hidden">Tour</span>
-                </Button>
-              )}
+              
+              <div className="flex items-center gap-3">
+                {!tourCompleted && (
+                  <Button 
+                    variant="outline" 
+                    className="bg-white/10 hover:bg-white/20 text-white border-white/30 backdrop-blur-sm min-h-[44px]"
+                    onClick={() => setShowTour(true)}
+                  >
+                    <Play className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Platform Tour</span>
+                    <span className="sm:hidden">Tour</span>
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
 
         <div className="container mx-auto px-4 py-8">
-          <BackButton />
 
           {/* Mobile: Swipeable Tabs */}
           <div className="md:hidden">
@@ -191,43 +231,78 @@ export default function Dashboard() {
           <div className="hidden md:block">
           <Tabs defaultValue="overview" className="space-y-8">
 
-            <TabsList className="grid w-full max-w-2xl grid-cols-3">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="activity">Activity Feed</TabsTrigger>
-              <TabsTrigger value="roi">ROI Analytics</TabsTrigger>
+            <TabsList className="grid w-full max-w-2xl grid-cols-3 bg-white shadow-md border-0 p-1.5">
+              <TabsTrigger 
+                value="overview" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                Overview
+              </TabsTrigger>
+              <TabsTrigger 
+                value="activity" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                Activity Feed
+              </TabsTrigger>
+              <TabsTrigger 
+                value="roi" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-500 data-[state=active]:to-emerald-500 data-[state=active]:text-white data-[state=active]:shadow-lg"
+              >
+                ROI Analytics
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-8">
-              <div className="grid md:grid-cols-4 gap-6">
+              {/* Modern Stats Grid */}
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {stats.map((stat, idx) => (
-                  <Card key={idx}>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                      <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                  <Card key={idx} className="relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                    <div className={`absolute top-0 right-0 w-32 h-32 ${stat.bgColor} rounded-full -mr-16 -mt-16 opacity-50`}></div>
+                    <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                        <div className={`p-3 ${stat.bgColor} rounded-xl`}>
+                          <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                        </div>
+                        <Badge variant="outline" className="border-emerald-200 text-emerald-700">
+                          {stat.trend}
+                        </Badge>
+                      </div>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-3xl font-bold">{stat.value}</div>
+                      <div className="text-3xl font-bold text-gray-900 mb-1">{stat.value}</div>
+                      <p className="text-sm text-gray-600 font-medium">{stat.title}</p>
                     </CardContent>
                   </Card>
                 ))}
               </div>
 
-              <Card className="bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="bg-purple-100 p-3 rounded-full">
-                        <BarChart3 className="h-8 w-8 text-purple-600" />
+              {/* Featured Action Card */}
+              <Card className="relative overflow-hidden border-0 shadow-xl bg-gradient-to-br from-teal-500 via-emerald-500 to-cyan-500">
+                <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]"></div>
+                <CardContent className="relative p-6 md:p-8">
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl">
+                        <BarChart3 className="h-8 w-8 text-white" />
                       </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900">View Your Complete Analytics</h3>
-                        <p className="text-sm text-gray-600 mt-1">
-                          Track your engagement, downloads, events, forum activity, and more
+                      <div className="text-white">
+                        <h3 className="text-2xl font-bold mb-2">Unlock Your Growth Insights</h3>
+                        <p className="text-teal-50 text-sm md:text-base mb-3">
+                          Track your engagement, downloads, events, forum activity, and discover personalized recommendations
                         </p>
+                        <div className="flex items-center gap-2 text-sm">
+                          <Award className="w-4 h-4" />
+                          <span className="font-medium">Advanced Analytics Available</span>
+                        </div>
                       </div>
                     </div>
-                    <Button onClick={() => navigate('/my-analytics')} className="bg-purple-600 hover:bg-purple-700 text-white">
+                    <Button 
+                      onClick={() => navigate('/my-analytics')} 
+                      size="lg"
+                      className="bg-white text-teal-600 hover:bg-teal-50 font-semibold shadow-lg whitespace-nowrap"
+                    >
                       View Analytics
+                      <ArrowUpRight className="ml-2 h-4 w-4" />
                     </Button>
                   </div>
                 </CardContent>
@@ -265,15 +340,40 @@ export default function Dashboard() {
             </TabsContent>
 
             <TabsContent value="roi" className="space-y-8">
-              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
-                <CardHeader>
-                  <CardTitle className="text-2xl">Your Membership ROI</CardTitle>
-                  <p className="text-sm text-muted-foreground">Estimated value from your NAREIS membership this year</p>
+              {/* ROI Hero Card */}
+              <Card className="relative overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500">
+                <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:30px_30px]"></div>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+                <CardHeader className="relative">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="bg-white/20 backdrop-blur-sm p-2 rounded-lg">
+                      <TrendingUp className="h-6 w-6 text-white" />
+                    </div>
+                    <Badge className="bg-white/20 text-white border-white/30">This Year</Badge>
+                  </div>
+                  <CardTitle className="text-3xl text-white">Your Membership ROI</CardTitle>
+                  <CardDescription className="text-teal-50 text-base">
+                    Estimated value from your NAREIS membership this year
+                  </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-5xl font-bold text-green-600">${totalROI.toLocaleString()}</div>
-                  <p className="text-sm text-muted-foreground mt-2">Annual membership investment: $2,500</p>
-                  <p className="text-lg font-semibold text-green-700 mt-1">Return: {((totalROI / 2500) * 100).toFixed(0)}%</p>
+                <CardContent className="relative">
+                  <div className="flex items-end gap-4 mb-4">
+                    <div className="text-6xl font-bold text-white">${totalROI.toLocaleString()}</div>
+                    <div className="bg-emerald-400/30 backdrop-blur-sm px-3 py-1 rounded-full mb-2">
+                      <p className="text-2xl font-bold text-white">+{((totalROI / 2500) * 100).toFixed(0)}%</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6 text-white/90">
+                    <div>
+                      <p className="text-sm text-teal-100">Investment</p>
+                      <p className="text-xl font-semibold">$2,500</p>
+                    </div>
+                    <div className="h-8 w-px bg-white/30"></div>
+                    <div>
+                      <p className="text-sm text-teal-100">Return</p>
+                      <p className="text-xl font-semibold">${(totalROI - 2500).toLocaleString()}</p>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -285,8 +385,7 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-
-    </>
+    </DashboardLayout>
   );
 }
 

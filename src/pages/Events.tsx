@@ -16,7 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { Event } from '@/types/event';
 import { fetchEvents } from '@/lib/eventService';
-import { Plus, Calendar, Users, MessageSquare, Grid, CalendarDays, Database, HardDrive } from 'lucide-react';
+import { Plus, Calendar, Users, MessageSquare, Grid, CalendarDays } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
@@ -160,10 +160,7 @@ export default function Events() {
         <div>
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-3xl md:text-4xl font-bold">Networking Events</h1>
-            <Badge variant={fromDatabase ? "default" : "secondary"} className="gap-1">
-              {fromDatabase ? <Database className="h-3 w-3" /> : <HardDrive className="h-3 w-3" />}
-              {fromDatabase ? 'Live' : 'Sample'}
-            </Badge>
+
           </div>
           <p className="text-gray-600 text-sm md:text-base">Connect with fellow members at local meetups, virtual sessions, and industry mixers</p>
         </div>

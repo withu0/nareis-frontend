@@ -8,7 +8,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import AdminRoute from "@/components/AdminRoute";
 import Index from "./pages/Index";
-import SessionDiagnostic from '@/components/SessionDiagnostic';
 
 import MemberBenefits from "./pages/MemberBenefits";
 import About from "./pages/About";
@@ -19,6 +18,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
+import UserManagement from "./pages/UserManagement";
 import Events from "./pages/Events";
 import Advocacy from "./pages/Advocacy";
 import Resources from "./pages/Resources";
@@ -50,7 +50,6 @@ import AdvertiserDashboard from "./pages/AdvertiserDashboard";
 import AdvancedAdvertiserAnalytics from "./pages/AdvancedAdvertiserAnalytics";
 import AdvertiserProfile from "./pages/AdvertiserProfile";
 import AdvertiserBilling from "./pages/AdvertiserBilling";
-import StripeTest from "./pages/StripeTest";
 import Billing from "./pages/Billing";
 import DebugSignup from "./pages/DebugSignup";
 import SignupFlowTest from "./pages/SignupFlowTest";
@@ -130,11 +129,11 @@ const App = () => {
 
                 {/* Admin routes */}
                 <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
+                <Route path="/admin/user" element={<AdminRoute><UserManagement /></AdminRoute>} />
                 <Route path="/admin/featured-memberships" element={<AdminRoute><FeaturedMembershipsAdmin /></AdminRoute>} />
                 <Route path="/admin/advertisements" element={<AdminRoute><AdManagement /></AdminRoute>} />
                 <Route path="/admin/approval-queue" element={<AdminRoute><ApprovalQueue /></AdminRoute>} />
                 <Route path="/admin/featured-member-tracking" element={<AdminRoute><FeaturedMemberTracking /></AdminRoute>} />
-                <Route path="/stripe-test" element={<AdminRoute><StripeTest /></AdminRoute>} />
                 <Route path="/debug-signup" element={<AdminRoute><DebugSignup /></AdminRoute>} />
                 <Route path="/signup-flow-test" element={<AdminRoute><SignupFlowTest /></AdminRoute>} />
 

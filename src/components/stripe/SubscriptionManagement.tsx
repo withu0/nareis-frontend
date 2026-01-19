@@ -35,7 +35,7 @@ export default function SubscriptionManagement() {
       if (response.data) {
         setSubscription({
           membership_tier: response.data.membershipTier,
-          subscription_status: response.data.subscriptionStatus,
+          membership_status: response.data.membershipStatus,
           stripe_subscription_id: response.data.stripeSubscriptionId,
           stripe_customer_id: response.data.stripeCustomerId,
         });
@@ -149,8 +149,8 @@ export default function SubscriptionManagement() {
   if (loading) return <div>Loading...</div>;
 
   const currentTier = tiers.find(t => t.id === subscription?.membership_tier);
-  const isActive = subscription?.subscription_status === 'active';
-  const isCanceling = subscription?.subscription_status === 'canceling';
+  const isActive = subscription?.membership_status === 'active';
+  const isCanceling = subscription?.membership_status === 'canceling';
 
   return (
     <div className="space-y-6">
@@ -188,7 +188,7 @@ export default function SubscriptionManagement() {
               <p className="text-muted-foreground">${currentTier?.price || 0}/year</p>
             </div>
             <Badge variant={isActive ? 'default' : 'secondary'}>
-              {subscription?.subscription_status || 'inactive'}
+              {subscription?.membership_status || 'pending'}
             </Badge>
           </div>
 

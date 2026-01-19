@@ -1,75 +1,60 @@
-import { supabase } from './supabase';
+import { eventsAPI } from './api';
 import { Event } from '@/types/event';
 import { networkingEvents } from '@/data/networkingEvents';
 
-export interface SupabaseEvent {
+export interface BackendEvent {
   id: string;
   title: string;
-  description: string | null;
-  event_type: string | null;
-  start_date: string;
-  end_date: string | null;
-  location: string | null;
-  virtual_link: string | null;
-  is_virtual: boolean;
-  organizer_id: string | null;
-  chapter_id: string | null;
-  max_attendees: number | null;
-  registration_deadline: string | null;
-  status: string | null;
-  image_url: string | null;
-  created_at: string;
+  description: string;
+  eventType: string;
+  startDate: string;
+  endDate?: string;
+  location: string;
+  virtualLink?: string;
+  isVirtual: boolean;
+  organizerId: any;
+  chapterId?: string;
+  maxAttendees?: number;
+  registrationDeadline?: string;
+  status: string;
+  imageUrl?: string;
+  registeredCount: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export function transformSupabaseEvent(event: SupabaseEvent, registeredCount = 0): Event {
+export function transformBackendEvent(event: BackendEvent): Event {
   return {
     id: event.id,
     title: event.title,
     description: event.description || '',
-    category: event.event_type || 'Networking',
-    event_date: event.start_date,
-    end_date: event.end_date || undefined,
+    category: event.eventType || 'Networking',
+    event_date: event.startDate,
+    end_date: event.endDate || undefined,
     location: event.location || 'Online',
-    location_type: event.is_virtual ? 'virtual' : 'in-person',
-    virtual_link: event.virtual_link || undefined,
-    organizer: 'NAREIS',
-    capacity: event.max_attendees || undefined,
-    registered_count: registeredCount,
-    image_url: event.image_url || 'https://d64gsuwffb70l.cloudfront.net/default-event.webp',
+    location_type: event.isVirtual ? 'virtual' : 'in-person',
+    virtual_link: event.virtualLink || undefined,
+    organizer: typeof event.organizerId === 'object' ? event.organizerId.fullName : 'NAREIS',
+    capacity: event.maxAttendees || undefined,
+    registered_count: event.registeredCount || 0,
+    image_url: event.imageUrl || 'https://d64gsuwffb70l.cloudfront.net/default-event.webp',
     is_featured: false,
-    registration_deadline: event.registration_deadline || undefined,
+    registration_deadline: event.registrationDeadline || undefined,
     status: (event.status as Event['status']) || 'upcoming'
   };
 }
 
 export async function fetchEvents(): Promise<{ data: Event[]; fromDatabase: boolean }> {
   try {
-    const { data: events, error } = await supabase
-      .from('events')
-      .select('*')
-      .gte('start_date', new Date().toISOString())
-      .order('start_date', { ascending: true });
+    const response = await eventsAPI.getAll({ upcoming: true });
 
-    if (error) throw error;
-
-    if (events && events.length > 0) {
-      // Get registration counts
-      const eventIds = events.map(e => e.id);
-      const { data: regs } = await supabase
-        .from('event_registrations')
-        .select('event_id')
-        .in('event_id', eventIds);
-
-      const regCounts: Record<string, number> = {};
-      regs?.forEach(r => {
-        regCounts[r.event_id] = (regCounts[r.event_id] || 0) + 1;
-      });
-
+    if (response.data?.events && response.data.events.length > 0) {
       return {
-        data: events.map(e => transformSupabaseEvent(e, regCounts[e.id] || 0)),
+        data: response.data.events.map(transformBackendEvent),
         fromDatabase: true
       };
     }
+    
     return { data: networkingEvents, fromDatabase: false };
   } catch (error) {
     console.error('Error fetching events:', error);
@@ -77,13 +62,35 @@ export async function fetchEvents(): Promise<{ data: Event[]; fromDatabase: bool
   }
 }
 
-export async function registerForEvent(eventId: string, customerId: string): Promise<boolean> {
+export async function registerForEvent(eventId: string): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('event_registrations')
-      .insert({ event_id: eventId, customer_id: customerId });
-    return !error;
-  } catch {
+    const response = await eventsAPI.register(eventId);
+    return !response.error;
+  } catch (error) {
+    console.error('Error registering for event:', error);
     return false;
+  }
+}
+
+export async function cancelEventRegistration(eventId: string): Promise<boolean> {
+  try {
+    const response = await eventsAPI.cancelRegistration(eventId);
+    return !response.error;
+  } catch (error) {
+    console.error('Error cancelling registration:', error);
+    return false;
+  }
+}
+
+export async function checkEventRegistration(eventId: string): Promise<{ registered: boolean; status: string | null }> {
+  try {
+    const response = await eventsAPI.checkRegistration(eventId);
+    return {
+      registered: response.data?.registered || false,
+      status: response.data?.status || null
+    };
+  } catch (error) {
+    console.error('Error checking registration:', error);
+    return { registered: false, status: null };
   }
 }

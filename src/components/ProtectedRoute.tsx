@@ -17,18 +17,6 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (loading || checkingStatus) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
   // Allow access to onboarding and pending-approval pages
   const allowedPaths = ['/onboarding', '/pending-approval', '/billing'];
   if (allowedPaths.includes(location.pathname)) {
@@ -40,8 +28,8 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // Check subscription status - must have active subscription
-  if (user.subscriptionStatus !== 'active') {
+  // Check membership status - must have active membership (payment completed)
+  if (user.membershipStatus !== 'active') {
     return <Navigate to="/onboarding" state={{ step: 6, message: 'Please complete payment to access member features.' }} replace />;
   }
 

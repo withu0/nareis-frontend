@@ -56,20 +56,10 @@ export function transformSupabaseMember(member: SupabaseMember): Member {
 
 export async function fetchMembers(): Promise<{ data: Member[]; fromDatabase: boolean }> {
   try {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return { data: membersDirectory, fromDatabase: false };
-    }
-
-    if (data && data.length > 0) {
-      return { data: data.map(transformSupabaseMember), fromDatabase: true };
-    }
-    
+    // Supabase is being migrated to Node.js backend
+    // For now, always return mock data
+    // TODO: Implement members API in Node.js backend if needed
+    console.log('[Members] Using mock data (backend members API not yet implemented)');
     return { data: membersDirectory, fromDatabase: false };
   } catch (error) {
     console.error('Error fetching members:', error);
@@ -79,30 +69,12 @@ export async function fetchMembers(): Promise<{ data: Member[]; fromDatabase: bo
 
 export async function fetchMembersRaw(): Promise<{ data: SupabaseMember[]; error: string | null; tableExists: boolean }> {
   try {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Supabase error:', error);
-      // Check if it's a "table doesn't exist" error
-      const isTableMissing = error.message?.includes('schema cache') || 
-                             error.message?.includes('does not exist') ||
-                             error.code === '42P01' ||
-                             error.code === 'PGRST204';
-      
-      if (isTableMissing) {
-        return { 
-          data: [], 
-          error: 'Database table "customers" not found. Please run migration 000_create_customers_table.sql in your Supabase SQL Editor.', 
-          tableExists: false 
-        };
-      }
-      return { data: [], error: error.message, tableExists: true };
-    }
-
-    return { data: data || [], error: null, tableExists: true };
+    // Returning empty data during migration to Node.js backend
+    return { 
+      data: [], 
+      error: 'Migrating to Node.js backend - using mock data', 
+      tableExists: false 
+    };
   } catch (err: any) {
     console.error('Fetch error:', err);
     return { data: [], error: err.message || 'Network error', tableExists: false };
@@ -112,14 +84,7 @@ export async function fetchMembersRaw(): Promise<{ data: SupabaseMember[]; error
 
 export async function fetchMemberById(id: string): Promise<Member | null> {
   try {
-    const { data, error } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('id', id)
-      .single();
-
-    if (error) throw error;
-    if (data) return transformSupabaseMember(data);
+    // Return from mock data during migration
     return membersDirectory.find(m => m.id === id) || null;
   } catch {
     return membersDirectory.find(m => m.id === id) || null;

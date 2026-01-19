@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, LogOut, User as UserIcon, ChevronDown, Settings } from 'lucide-react';
+import { Menu, X, LogOut, User as UserIcon, ChevronDown, Settings, LayoutDashboard, Shield } from 'lucide-react';
 
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -9,10 +9,11 @@ const Navigation: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [mobileResourcesOpen, setMobileResourcesOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [unreadNotifications] = useState(3); // Mock unread count
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin } = useAuth();
 
 
   const handleSignOut = async () => {
@@ -111,27 +112,80 @@ const Navigation: React.FC = () => {
           <div className="hidden lg:flex items-center space-x-3">
             {user ? (
               <>
-                <NotificationBell unreadCount={unreadNotifications} />
+                {/* <NotificationBell unreadCount={unreadNotifications} />
 
                 <button 
                   onClick={() => navigateToPage('/messages')} 
                   className="text-gray-700 hover:text-blue-900 px-3 py-2 rounded-lg hover:bg-blue-50 transition-all duration-200 flex items-center gap-2 text-sm font-medium"
                 >
                   Messages
-                </button>
-                <button 
-                  onClick={() => navigateToPage('/dashboard')} 
-                  className="text-gray-700 hover:text-blue-900 px-3 py-2 rounded-lg hover:bg-blue-50 transition-all duration-200 flex items-center gap-2 text-sm font-medium"
-                >
-                  <UserIcon className="w-4 h-4" /> Dashboard
-                </button>
+                </button> */}
 
-                <button 
-                  onClick={handleSignOut} 
-                  className="text-gray-700 hover:text-red-600 px-3 py-2 rounded-lg hover:bg-red-50 transition-all duration-200 flex items-center gap-2 text-sm font-medium"
+                {/* User Profile Dropdown */}
+                <div 
+                  className="relative"
+                  onMouseEnter={() => setUserMenuOpen(true)}
+                  onMouseLeave={() => setUserMenuOpen(false)}
                 >
-                  <LogOut className="w-4 h-4" /> Sign Out
-                </button>
+                  <button
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-blue-50 transition-all duration-200"
+                  >
+                    {/* User Avatar */}
+                    {user.profilePictureUrl ? (
+                      <img 
+                        src={user.profilePictureUrl} 
+                        alt={user.fullName}
+                        className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold text-sm border-2 border-gray-200">
+                        {user.fullName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {/* User Name */}
+                    <span className="text-sm font-medium text-gray-700 max-w-[150px] truncate">
+                      {user.fullName}
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-gray-500" />
+                  </button>
+                  
+                  {userMenuOpen && (
+                    <div className="absolute top-full right-0 w-56 bg-white rounded-lg shadow-lg border border-gray-100 py-2 pt-2">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{user.fullName}</p>
+                        <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                      </div>
+                      
+                      <button
+                        onClick={() => navigateToPage('/dashboard')}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-900 transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Dashboard
+                      </button>
+                      
+                      {isAdmin && (
+                        <button
+                          onClick={() => navigateToPage('/admin')}
+                          className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-900 transition-colors"
+                        >
+                          <Shield className="w-4 h-4" />
+                          Admin Dashboard
+                        </button>
+                      )}
+                      
+                      <div className="border-t border-gray-100 my-1"></div>
+                      
+                      <button
+                        onClick={handleSignOut}
+                        className="flex items-center gap-2 w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
               </>
             ) : (
               <>
@@ -228,14 +282,52 @@ const Navigation: React.FC = () => {
 
             {user ? (
               <>
+                {/* User Profile Section in Mobile */}
+                <div className="border-t border-gray-200 pt-3 mt-3">
+                  <div className="flex items-center gap-3 px-4 py-2">
+                    {/* User Avatar */}
+                    {user.profilePictureUrl ? (
+                      <img 
+                        src={user.profilePictureUrl} 
+                        alt={user.fullName}
+                        className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold border-2 border-gray-200">
+                        {user.fullName.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 truncate">{user.fullName}</p>
+                      <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                    </div>
+                  </div>
+                </div>
+
                 <MobileNavLink onClick={() => navigateToPage('/messages')}>Messages</MobileNavLink>
-                <MobileNavLink onClick={() => navigateToPage('/dashboard')}>Dashboard</MobileNavLink>
+                <MobileNavLink onClick={() => navigateToPage('/dashboard')}>
+                  <div className="flex items-center gap-2">
+                    <LayoutDashboard className="w-4 h-4" />
+                    Dashboard
+                  </div>
+                </MobileNavLink>
+                
+                {isAdmin && (
+                  <MobileNavLink onClick={() => navigateToPage('/admin')}>
+                    <div className="flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      Admin Dashboard
+                    </div>
+                  </MobileNavLink>
+                )}
+
                 <MobileNavLink onClick={() => navigateToPage('/profile')}>Profile</MobileNavLink>
 
                 <button 
                   onClick={handleSignOut} 
-                  className="block w-full text-left py-3 px-4 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"
+                  className="flex items-center gap-2 w-full text-left py-3 px-4 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"
                 >
+                  <LogOut className="w-4 h-4" />
                   Sign Out
                 </button>
               </>
@@ -280,7 +372,7 @@ const DropdownLink: React.FC<{ onClick: () => void; children: React.ReactNode }>
 const MobileNavLink: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
   <button
     onClick={onClick}
-    className="block w-full text-left py-3 px-4 text-gray-700 hover:bg-blue-50 hover:text-blue-900 rounded-lg font-medium transition-colors"
+    className="w-full text-left py-3 px-4 text-gray-700 hover:bg-blue-50 hover:text-blue-900 rounded-lg font-medium transition-colors"
   >
     {children}
   </button>

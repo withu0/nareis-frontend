@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { authAPI } from '@/lib/api';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -33,17 +33,20 @@ export default function PendingApproval() {
   const checkApprovalStatus = async () => {
     if (!user) return;
 
-    const { data } = await supabase
-      .from('customers')
-      .select('*, subscription_status')
-      .eq('id', user.id)
-      .single();
-
-    if (data) {
-      setMemberData(data);
-      if (data.approval_status === 'approved' && data.subscription_status === 'active') {
-        navigate('/dashboard');
+    try {
+      const response = await authAPI.getCurrentUser();
+      
+      if (response.data?.user) {
+        const userData = response.data.user;
+        setMemberData(userData);
+        
+        // If user has active membership (payment completed), redirect to dashboard
+        if (userData.membershipStatus === 'active') {
+          navigate('/dashboard');
+        }
       }
+    } catch (error) {
+      console.error('Failed to check approval status:', error);
     }
   };
 
@@ -61,7 +64,7 @@ export default function PendingApproval() {
   }
 
   // Payment not completed
-  if (memberData.subscription_status !== 'active') {
+  if (memberData.membershipStatus !== 'active') {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-yellow-50 to-orange-50 p-4">
         <Card className="max-w-2xl w-full p-8 text-center">
@@ -84,7 +87,7 @@ export default function PendingApproval() {
   }
 
   // Rejected
-  if (memberData.approval_status === 'rejected') {
+  if (memberData.approvalStatus === 'rejected') {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-orange-50 p-4">
         <Card className="max-w-2xl w-full p-8 text-center">
@@ -95,12 +98,6 @@ export default function PendingApproval() {
           <p className="text-gray-600 mb-4">
             Unfortunately, your membership application was not approved at this time.
           </p>
-          {memberData.approval_notes && (
-            <div className="bg-gray-50 p-4 rounded-lg mb-6 text-left">
-              <p className="font-medium text-sm text-gray-700 mb-1">Administrator Notes:</p>
-              <p className="text-gray-600">{memberData.approval_notes}</p>
-            </div>
-          )}
           <p className="text-sm text-gray-500 mb-6">
             Contact us at membership@nareis.org for questions.
           </p>

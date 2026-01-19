@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
-import { supabase, debugSession } from '@/lib/supabase';
+import { debugSession } from '@/lib/supabase';
 import { CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import ProfileStep from '@/components/onboarding/ProfileStep';
 import MembershipTierStep from '@/components/onboarding/MembershipTierStep';
@@ -31,14 +31,16 @@ export default function Onboarding() {
     console.log('Current URL:', window.location.href);
     
     const paymentStatus = searchParams.get('payment');
+    const sessionId = searchParams.get('session_id');
     const tier = searchParams.get('tier');
     
     console.log('=== PAYMENT RETURN CHECK ===');
     console.log('Payment status:', paymentStatus);
+    console.log('Session ID:', sessionId);
     console.log('Tier:', tier);
     console.log('Already started?', verificationStartedRef.current);
     
-    if (paymentStatus === 'success' && tier && !verificationStartedRef.current) {
+    if (paymentStatus === 'success' && sessionId && tier && !verificationStartedRef.current) {
       verificationStartedRef.current = true;
       console.log('✅ Payment success detected, starting verification...');
       setStep(7);
@@ -46,249 +48,39 @@ export default function Onboarding() {
       setVerificationError(null);
       setVerificationTimeout(false);
       
-      // Set a timeout to show manual options after 45 seconds
+      // Set a timeout to show manual options after 30 seconds
       const timeoutId = setTimeout(() => {
         console.log('⏱️ Verification taking longer than expected');
         setVerificationTimeout(true);
-      }, 45000);
+      }, 30000);
       
-      // CRITICAL: Force Supabase to check localStorage and restore session
-      const restoreAndVerify = async () => {
-        console.log('🔄 Forcing session restoration from localStorage...');
+      // Direct verification without polling
+      const verifyPayment = async () => {
+        console.log('🔄 Checking authentication...');
         
-        // Check if session exists in localStorage
-        const storedSession = localStorage.getItem('nareis-auth-token');
-        console.log('📦 localStorage check:', storedSession ? 'Data found' : 'No data');
-        
-        if (storedSession) {
-          try {
-            const parsed = JSON.parse(storedSession);
-            console.log('✅ Session data in localStorage:', {
-              hasAccessToken: !!parsed.access_token,
-              hasRefreshToken: !!parsed.refresh_token,
-              userEmail: parsed.user?.email
-            });
-          } catch (e) {
-            console.error('❌ Failed to parse stored session:', e);
-          }
-        }
-        
-        // Force Supabase to re-initialize with timeout
-        console.log('⏱️ Calling getSession with 3s timeout...');
-        try {
-          await Promise.race([
-            supabase.auth.getSession(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('getSession timeout')), 3000))
-          ]);
-          console.log('✅ getSession completed');
-        } catch (err: any) {
-          console.warn('⚠️ getSession failed or timed out:', err.message);
-          // Continue anyway since session is in localStorage
-        }
-        
-        // Small additional delay
-        console.log('⏱️ Waiting 500ms before verification...');
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // Now start verification
-        console.log('🚀 Calling startVerification...');
-        try {
-          await startVerification(tier);
-          clearTimeout(timeoutId);
-          console.log('✅ startVerification completed successfully');
-        } catch (err: any) {
-          clearTimeout(timeoutId);
-          console.error('❌ VERIFICATION FAILED:', err);
-          console.error('Error stack:', err.stack);
-          setVerificationError(err.message || 'Verification failed');
+        // Check auth token
+        const token = localStorage.getItem('auth_token');
+        if (!token) {
+          console.error('❌ No auth token found');
+          setVerificationError('Session expired. Please log in again.');
           setProcessingPayment(false);
           setStep(6);
-        }
-      };
-      
-      // Start restoration after small delay
-      setTimeout(restoreAndVerify, 1500);
-      
-    } else if (paymentStatus === 'cancel') {
-      toast({
-        title: 'Payment Cancelled',
-        description: 'You can try again when ready.',
-        variant: 'default'
-      });
-      setStep(6);
-    }
-  }, [searchParams]);
-
-  async function startVerification(tier: string) {
-    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('>>> PAYMENT VERIFICATION STARTED <<<');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('Tier to verify:', tier);
-    
-    // Debug session state (non-blocking with timeout)
-    try {
-      await Promise.race([
-        debugSession(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('debugSession timeout')), 2000))
-      ]);
-    } catch (err: any) {
-      console.warn('⚠️ debugSession timed out, continuing anyway');
-    }
-    
-    let userId: string | null = null;
-    let userEmail: string | null = null;
-    
-    // Extended retry logic for auth after Stripe redirect
-    const maxAuthRetries = 10;
-    for (let authAttempt = 1; authAttempt <= maxAuthRetries; authAttempt++) {
-      console.log(`\n[AUTH ATTEMPT ${authAttempt}/${maxAuthRetries}]`);
-      
-      try {
-        // WORKAROUND: If getSession hangs, read directly from localStorage
-        const storedSession = localStorage.getItem('nareis-auth-token');
-        if (storedSession) {
-          try {
-            const parsed = JSON.parse(storedSession);
-            if (parsed.user?.id) {
-              userId = parsed.user.id;
-              userEmail = parsed.user.email || null;
-              console.log(`[AUTH] ✅ Got user from localStorage directly`);
-              console.log(`[AUTH]   User ID: ${userId}`);
-              console.log(`[AUTH]   Email: ${userEmail}`);
-              break; // Success!
-            }
-          } catch (parseErr) {
-            console.warn('[AUTH] Failed to parse localStorage session:', parseErr);
-          }
+          clearTimeout(timeoutId);
+          return;
         }
         
-        // Try getSession with timeout as fallback
+        console.log('✅ Auth token found in localStorage');
+        
+        // Small delay to ensure backend is ready
+        console.log('⏱️ Waiting 1s before verification...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Verify payment with backend
+        console.log('🚀 Calling verifyPayment API...');
         try {
-          const sessionPromise = supabase.auth.getSession();
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('getSession timeout')), 2000)
-          );
-          
-          const result: any = await Promise.race([sessionPromise, timeoutPromise]);
-          
-          if (result?.data?.session?.user?.id) {
-            userId = result.data.session.user.id;
-            userEmail = result.data.session.user.email || null;
-            console.log(`[AUTH] ✅ Session from getSession()`);
-            console.log(`[AUTH]   User ID: ${userId}`);
-            break;
-          }
-        } catch (sessionErr: any) {
-          console.warn(`[AUTH] getSession failed:`, sessionErr.message);
-        }
-        
-        // Wait before retry
-        if (!userId && authAttempt < maxAuthRetries) {
-          const delay = authAttempt <= 3 ? 500 : 1000;
-          console.log(`[AUTH] ⏳ Waiting ${delay}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-        
-      } catch (err) {
-        console.error(`[AUTH] Exception on attempt ${authAttempt}:`, err);
-        if (authAttempt < maxAuthRetries) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-    }
-    
-    if (!userId) {
-      console.error('[AUTH] ❌ Failed to restore session after all retries');
-      console.error('[AUTH] This may indicate:');
-      console.error('[AUTH]   - Session was not persisted through Stripe redirect');
-      console.error('[AUTH]   - Browser cleared session storage');
-      console.error('[AUTH]   - Supabase session expired');
-      throw new Error('Session expired during payment. Please sign in again and contact support if payment was processed.');
-    }
-    
-    console.log(`\n[AUTH] 🎯 Authenticated as user: ${userId}`);
-    console.log(`[AUTH] 📧 Email: ${userEmail}`);
-    
-    // Poll for webhook update from Stripe using direct REST API
-    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    console.log('[POLLING] Waiting for Stripe webhook to update database');
-    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    
-    const maxAttempts = 120; // 120 seconds (2 minutes) to account for slow webhooks
-    const pollInterval = 1000;
-    
-    // Direct REST API call instead of Supabase client to avoid hanging
-    const supabaseUrl = 'https://qkwaywkacqjjkkfogvtm.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrd2F5d2thY3FqamtrZm9ndnRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUxOTg5MDUsImV4cCI6MjA4MDc3NDkwNX0.rvLMX0BxFUnN380ENYF66tEIpuOibHDUnlq8jiisTzA';
-    
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      console.log(`\n[POLL ${attempt}/${maxAttempts}]`);
-      
-      try {
-        const url = `${supabaseUrl}/rest/v1/customers?auth_id=eq.${userId}&select=subscription_status,membership_tier,onboarding_completed,email,stripe_customer_id,stripe_subscription_id`;
-        
-        console.log('[POLL] Fetching directly from REST API...');
-        
-        const fetchPromise = fetch(url, {
-          headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
-            'Content-Type': 'application/json',
-            'Prefer': 'return=representation'
-          }
-        });
-        
-        const timeoutPromise = new Promise<Response>((_, reject) => 
-          setTimeout(() => reject(new Error('Fetch timeout')), 5000)
-        );
-        
-        const response = await Promise.race([fetchPromise, timeoutPromise]);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`[POLL] HTTP ${response.status}:`, errorText);
-          if (attempt > 15) {
-            throw new Error(`HTTP ${response.status}: ${errorText}`);
-          }
-          await new Promise(resolve => setTimeout(resolve, pollInterval));
-          continue;
-        }
-        
-        const data = await response.json();
-        console.log('[POLL] Response received:', data);
-        
-        if (!data || data.length === 0) {
-          console.warn(`[POLL] ⚠️ No customer record found`);
-          await new Promise(resolve => setTimeout(resolve, pollInterval));
-          continue;
-        }
-        
-        const customer = data[0];
-        
-        console.log(`[POLL] Customer record found:`);
-        console.log(`       Email: ${customer.email}`);
-        console.log(`       Stripe Customer: ${customer.stripe_customer_id || 'not set'}`);
-        console.log(`       Stripe Subscription: ${customer.stripe_subscription_id || 'not set'}`);
-        console.log(`       Status: ${customer.subscription_status}`);
-        console.log(`       Tier: ${customer.membership_tier}`);
-        console.log(`       Onboarding Complete: ${customer.onboarding_completed}`);
-        
-        // Check if webhook has updated the record
-        const isActive = customer.subscription_status === 'active';
-        const tierMatches = customer.membership_tier === tier;
-        const isComplete = customer.onboarding_completed === true;
-        const hasStripeId = !!customer.stripe_customer_id;
-        
-        console.log(`[POLL] Verification checks:`);
-        console.log(`       ✓ Active subscription: ${isActive}`);
-        console.log(`       ✓ Tier matches: ${tierMatches} (${customer.membership_tier} === ${tier})`);
-        console.log(`       ✓ Onboarding complete: ${isComplete}`);
-        console.log(`       ✓ Has Stripe ID: ${hasStripeId}`);
-        
-        if (isActive && tierMatches && isComplete) {
-          console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-          console.log('🎉 PAYMENT VERIFIED SUCCESSFULLY!');
-          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+          await verifyPaymentWithRetry(sessionId, tier, 3);
+          clearTimeout(timeoutId);
+          console.log('✅ Payment verified successfully');
           
           setProcessingPayment(false);
           setPaymentComplete(true);
@@ -301,39 +93,102 @@ export default function Onboarding() {
           
           setTimeout(() => {
             console.log('[REDIRECT] Navigating to dashboard...');
-            // Hard redirect to reset Supabase client state
             window.location.href = '/dashboard';
           }, 2000);
           
-          return; // SUCCESS!
+        } catch (err: any) {
+          clearTimeout(timeoutId);
+          console.error('❌ VERIFICATION FAILED:', err);
+          setVerificationError(err.message || 'Verification failed');
+          setProcessingPayment(false);
+          setStep(6);
+        }
+      };
+      
+      // Start verification after small delay
+      setTimeout(verifyPayment, 500);
+      
+    } else if (paymentStatus === 'cancel') {
+      toast({
+        title: 'Payment Cancelled',
+        description: 'You can try again when ready.',
+        variant: 'default'
+      });
+      setStep(6);
+    }
+  }, [searchParams]);
+
+  async function verifyPaymentWithRetry(sessionId: string, tier: string, maxRetries: number = 3) {
+    console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('>>> PAYMENT VERIFICATION STARTED <<<');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('Session ID:', sessionId);
+    console.log('Tier:', tier);
+    
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const token = localStorage.getItem('auth_token');
+    
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      console.log(`\n[ATTEMPT ${attempt}/${maxRetries}]`);
+      
+      try {
+        const url = `${apiUrl}/stripe/verify-payment`;
+        
+        console.log('[VERIFY] Calling backend API...');
+        
+        const fetchPromise = fetch(url, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ sessionId, tier })
+        });
+        
+        const timeoutPromise = new Promise<Response>((_, reject) => 
+          setTimeout(() => reject(new Error('Request timeout')), 10000)
+        );
+        
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`[VERIFY] HTTP ${response.status}:`, errorText);
+          
+          if (attempt === maxRetries) {
+            throw new Error(`Verification failed: ${errorText}`);
+          }
+          
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          continue;
         }
         
-        // Log what we're waiting for
-        if (!isActive) console.log(`       ⏳ Waiting for webhook to set status to 'active'`);
-        if (!tierMatches) console.log(`       ⏳ Waiting for tier to update to '${tier}'`);
-        if (!isComplete) console.log(`       ⏳ Waiting for onboarding_completed flag`);
+        const result = await response.json();
+        console.log('[VERIFY] Response:', result);
         
-        // Continue polling
-        if (attempt < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, pollInterval));
+        if (result.data?.success) {
+          console.log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+          console.log('🎉 PAYMENT VERIFIED SUCCESSFULLY!');
+          console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
+          return result.data;
+        } else {
+          throw new Error(result.error || 'Verification failed');
         }
         
-      } catch (pollErr: any) {
-        console.error(`[POLL] Exception:`, pollErr);
-        if (attempt > 20) {
-          throw pollErr;
+      } catch (err: any) {
+        console.error(`[VERIFY] Attempt ${attempt} failed:`, err.message);
+        
+        if (attempt === maxRetries) {
+          throw err;
         }
-        await new Promise(resolve => setTimeout(resolve, pollInterval));
+        
+        // Wait before retry
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
     
-    // Timeout reached
-    console.error('\n[POLL] ⏱️ TIMEOUT - Webhook did not update record in time');
-    console.error('[POLL] Possible issues:');
-    console.error('[POLL]   - Webhook endpoint not configured correctly');
-    console.error('[POLL]   - Webhook failed to process');
-    console.error('[POLL]   - Payment succeeded but webhook delayed');
-    throw new Error('Payment verification timeout. Your payment may have succeeded. Please refresh the page or contact support to verify your membership status.');
+    throw new Error('Payment verification failed after multiple attempts');
   }
 
   const totalSteps = 7;

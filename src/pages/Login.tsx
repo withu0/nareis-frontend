@@ -25,17 +25,31 @@ export default function Login() {
 
     if (result.error) {
       toast({ title: 'Error', description: result.error.message, variant: 'destructive' });
+      setLoading(false);
     } else {
       toast({ title: 'Success', description: 'Logged in successfully!' });
       
+      // Use the user data from the login result, not from context (context hasn't updated yet)
+      const loggedInUser = result.data?.user;
+      
       // Check if user is admin and redirect accordingly
-      if (user?.role === 'admin' || ['admin@nareis.org', 'rick@theraisegroup.com'].includes(email.toLowerCase())) {
+      if (loggedInUser?.role === 'admin' || ['admin@nareis.org', 'rick@theraisegroup.com'].includes(email.toLowerCase())) {
         navigate('/admin');
+      } else if (!loggedInUser?.onboardingCompleted) {
+        // If onboarding is not completed, redirect to onboarding
+        navigate('/onboarding');
+      } else if (loggedInUser?.membershipStatus !== 'active') {
+        // If membership is not active, redirect to onboarding payment step
+        navigate('/onboarding');
+      } else if (loggedInUser?.approvalStatus === 'pending' || loggedInUser?.approvalStatus === 'rejected') {
+        // If approval is pending or rejected, redirect to pending approval page
+        navigate('/pending-approval');
       } else {
+        // User has completed everything, go to dashboard
         navigate('/dashboard');
       }
+      setLoading(false);
     }
-    setLoading(false);
   };
 
 

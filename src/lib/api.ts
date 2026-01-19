@@ -118,6 +118,115 @@ export const stripeAPI = {
     const response = await api.get('/stripe/subscription');
     return response.data;
   },
+
+  verifyPayment: async (sessionId: string, tier: string) => {
+    const response = await api.post('/stripe/verify-payment', { sessionId, tier });
+    return response.data;
+  },
+};
+
+// Admin API
+export const adminAPI = {
+  // Dashboard statistics
+  getStats: async () => {
+    const response = await api.get('/admin/stats');
+    return response.data;
+  },
+
+  // User management
+  getUsers: async (filters?: { status?: string; role?: string; tier?: string; search?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.role) params.append('role', filters.role);
+    if (filters?.tier) params.append('tier', filters.tier);
+    if (filters?.search) params.append('search', filters.search);
+    
+    const response = await api.get(`/admin/users?${params.toString()}`);
+    return response.data;
+  },
+
+  getUserById: async (id: string) => {
+    const response = await api.get(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  createUser: async (data: any) => {
+    const response = await api.post('/admin/users', data);
+    return response.data;
+  },
+
+  updateUser: async (id: string, data: any) => {
+    const response = await api.put(`/admin/users/${id}`, data);
+    return response.data;
+  },
+
+  deleteUser: async (id: string) => {
+    const response = await api.delete(`/admin/users/${id}`);
+    return response.data;
+  },
+
+  approveUser: async (id: string) => {
+    const response = await api.put(`/admin/users/${id}/approve`);
+    return response.data;
+  },
+
+  rejectUser: async (id: string) => {
+    const response = await api.put(`/admin/users/${id}/reject`);
+    return response.data;
+  },
+};
+
+// Events API
+export const eventsAPI = {
+  getAll: async (filters?: { status?: string; eventType?: string; upcoming?: boolean }) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.eventType) params.append('eventType', filters.eventType);
+    if (filters?.upcoming) params.append('upcoming', 'true');
+    
+    const response = await api.get(`/events?${params.toString()}`);
+    return response.data;
+  },
+
+  getById: async (id: string) => {
+    const response = await api.get(`/events/${id}`);
+    return response.data;
+  },
+
+  create: async (data: any) => {
+    const response = await api.post('/events', data);
+    return response.data;
+  },
+
+  update: async (id: string, data: any) => {
+    const response = await api.put(`/events/${id}`, data);
+    return response.data;
+  },
+
+  delete: async (id: string) => {
+    const response = await api.delete(`/events/${id}`);
+    return response.data;
+  },
+
+  register: async (eventId: string) => {
+    const response = await api.post(`/events/${eventId}/register`);
+    return response.data;
+  },
+
+  cancelRegistration: async (eventId: string) => {
+    const response = await api.delete(`/events/${eventId}/register`);
+    return response.data;
+  },
+
+  checkRegistration: async (eventId: string) => {
+    const response = await api.get(`/events/${eventId}/my-registration`);
+    return response.data;
+  },
+
+  getRegistrations: async (eventId: string) => {
+    const response = await api.get(`/events/${eventId}/registrations`);
+    return response.data;
+  },
 };
 
 export default api;

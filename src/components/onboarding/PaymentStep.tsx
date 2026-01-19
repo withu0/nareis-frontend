@@ -13,12 +13,12 @@ interface PaymentStepProps {
 }
 
 const tierPrices: Record<string, { amount: number; priceId: string; isRecurring: boolean }> = {
-  foundation: { amount: 495, priceId: 'price_foundation_yearly', isRecurring: true },
-  growth: { amount: 995, priceId: 'price_growth_yearly', isRecurring: true },
-  stakeholder: { amount: 1495, priceId: 'price_stakeholder_yearly', isRecurring: true },
-  professional: { amount: 1995, priceId: 'price_professional_yearly', isRecurring: true },
-  enterprise: { amount: 3995, priceId: 'price_enterprise_yearly', isRecurring: true },
-  founding: { amount: 5995, priceId: 'price_founding_lifetime', isRecurring: false }
+  foundation: { amount: 495, priceId: 'price_foundation', isRecurring: false },
+  growth: { amount: 995, priceId: 'price_growth', isRecurring: false },
+  stakeholder: { amount: 1495, priceId: 'price_stakeholder', isRecurring: false },
+  professional: { amount: 1995, priceId: 'price_professional', isRecurring: false },
+  enterprise: { amount: 3995, priceId: 'price_enterprise', isRecurring: false },
+  founding: { amount: 5995, priceId: 'price_founding', isRecurring: false }
 };
 
 const tierNames: Record<string, string> = {
@@ -34,7 +34,6 @@ export default function PaymentStep({ data, onComplete }: PaymentStepProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const { user } = useAuth();
   const { user } = useAuth();
   
   const tier = data.membershipTier || 'foundation';
@@ -59,7 +58,7 @@ export default function PaymentStep({ data, onComplete }: PaymentStepProps) {
       
       const response = await stripeAPI.createCheckoutSession({
         tier,
-        successUrl: `${window.location.origin}/onboarding?payment=success&tier=${tier}`,
+        successUrl: `${window.location.origin}/onboarding?payment=success&session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
         cancelUrl: `${window.location.origin}/onboarding?payment=cancel`,
       });
 

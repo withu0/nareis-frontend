@@ -101,12 +101,6 @@ export default function MemberDirectory() {
             <p className="text-xl text-blue-100">
               Connect with insulation professionals across the nation
             </p>
-            <div className="mt-4">
-              <Badge variant={fromDatabase ? "default" : "secondary"} className="gap-2">
-                {fromDatabase ? <Database className="h-3 w-3" /> : <HardDrive className="h-3 w-3" />}
-                {fromDatabase ? 'Live Database' : 'Sample Data'}
-              </Badge>
-            </div>
           </div>
         </div>
 

@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 export default function BillingPortalCard() {
   const [loading, setLoading] = useState(false);
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<string>('');
+  const [membershipStatus, setMembershipStatus] = useState<string>('');
 
   useEffect(() => {
     fetchBillingInfo();
@@ -26,7 +26,7 @@ export default function BillingPortalCard() {
 
     if (data) {
       setStripeCustomerId(data.stripe_customer_id);
-      setSubscriptionStatus(data.subscription_status || 'inactive');
+      setMembershipStatus(data.subscription_status || 'pending');
     }
   };
 
