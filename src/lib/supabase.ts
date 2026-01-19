@@ -3,31 +3,24 @@
 
 const mockResponse = { data: null, error: { message: 'Migrating to Node.js backend' } };
 
+// Helper to create chainable query methods
+const createChainableMethods = (): any => ({
+  ...mockResponse,
+  eq: (column: string, value: any) => createChainableMethods(),
+  gte: (column: string, value: any) => createChainableMethods(),
+  lte: (column: string, value: any) => createChainableMethods(),
+  gt: (column: string, value: any) => createChainableMethods(),
+  lt: (column: string, value: any) => createChainableMethods(),
+  in: (column: string, values: any[]) => createChainableMethods(),
+  order: (column: string, options?: any) => createChainableMethods(),
+  limit: (count: number) => createChainableMethods(),
+  single: () => Promise.resolve(mockResponse),
+  then: (resolve: any) => resolve(mockResponse),
+});
+
 export const supabase = {
   from: (table: string) => ({
-    select: (columns?: string) => ({
-      ...mockResponse,
-      eq: (column: string, value: any) => ({
-        ...mockResponse,
-        single: () => Promise.resolve(mockResponse),
-        order: (column: string, options?: any) => Promise.resolve(mockResponse),
-        limit: (count: number) => ({
-          ...mockResponse,
-          single: () => Promise.resolve(mockResponse),
-        }),
-      }),
-      order: (column: string, options?: any) => ({
-        ...mockResponse,
-        limit: (count: number) => Promise.resolve(mockResponse),
-      }),
-      gte: (column: string, value: any) => ({
-        ...mockResponse,
-        order: (column: string, options?: any) => Promise.resolve(mockResponse),
-      }),
-      in: (column: string, values: any[]) => Promise.resolve(mockResponse),
-      single: () => Promise.resolve(mockResponse),
-      then: (resolve: any) => resolve(mockResponse),
-    }),
+    select: (columns?: string) => createChainableMethods(),
     insert: (data: any) => Promise.resolve(mockResponse),
     update: (data: any) => ({
       ...mockResponse,

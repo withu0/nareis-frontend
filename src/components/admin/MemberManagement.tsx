@@ -10,9 +10,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Ban, CheckCircle, RefreshCw, Database, Trash2, UserPlus, Edit, Eye } from 'lucide-react';
+import { Search, Ban, CheckCircle, RefreshCw, Database, Trash2, UserPlus, Edit, Eye, Upload, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { adminAPI } from '@/lib/api';
+import { adminAPI, getFileUrl } from '@/lib/api';
 
 interface User {
   id: string;
@@ -58,6 +58,10 @@ export default function MemberManagement() {
     onboardingCompleted: false,
     emailVerified: false,
   });
+  const [editAvatarFile, setEditAvatarFile] = useState<File | null>(null);
+  const [editAvatarPreview, setEditAvatarPreview] = useState<string | null>(null);
+  const [createAvatarFile, setCreateAvatarFile] = useState<File | null>(null);
+  const [createAvatarPreview, setCreateAvatarPreview] = useState<string | null>(null);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -142,6 +146,8 @@ export default function MemberManagement() {
       chapterId: user.chapterId,
       interests: user.interests,
     });
+    setEditAvatarFile(null);
+    setEditAvatarPreview(user.profilePictureUrl ? getFileUrl(user.profilePictureUrl) : null);
     setEditDialogOpen(true);
   };
 
@@ -154,15 +160,89 @@ export default function MemberManagement() {
       onboardingCompleted: false,
       emailVerified: false,
     });
+    setCreateAvatarFile(null);
+    setCreateAvatarPreview(null);
     setCreateDialogOpen(true);
+  };
+
+  const handleEditAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: 'Error', description: 'File size must be less than 5MB', variant: 'destructive' });
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast({ title: 'Error', description: 'File must be an image', variant: 'destructive' });
+        return;
+      }
+      setEditAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleEditAvatarRemove = () => {
+    setEditAvatarFile(null);
+    setEditAvatarPreview(null);
+    setEditForm({...editForm, profilePictureUrl: undefined});
+  };
+
+  const handleCreateAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: 'Error', description: 'File size must be less than 5MB', variant: 'destructive' });
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast({ title: 'Error', description: 'File must be an image', variant: 'destructive' });
+        return;
+      }
+      setCreateAvatarFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCreateAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCreateAvatarRemove = () => {
+    setCreateAvatarFile(null);
+    setCreateAvatarPreview(null);
+    setCreateForm({...createForm, profilePictureUrl: undefined});
   };
 
   const handleSaveEdit = async () => {
     if (!selectedUser) return;
     try {
-      await adminAPI.updateUser(selectedUser.id, editForm);
+      let dataToSend = editForm;
+      
+      // If there's an avatar file, we need to upload it first
+      if (editAvatarFile) {
+        const formData = new FormData();
+        formData.append('avatar', editAvatarFile);
+        
+        // Add all other form fields
+        Object.keys(editForm).forEach(key => {
+          const value = editForm[key as keyof typeof editForm];
+          if (value !== undefined && value !== null) {
+            formData.append(key, typeof value === 'boolean' ? String(value) : String(value));
+          }
+        });
+        
+        dataToSend = formData as any;
+      }
+      
+      await adminAPI.updateUser(selectedUser.id, dataToSend);
       toast({ title: 'Success', description: 'User updated successfully' });
       setEditDialogOpen(false);
+      setEditAvatarFile(null);
+      setEditAvatarPreview(null);
       fetchUsers();
     } catch (error: any) {
       toast({ title: 'Error', description: error.message || 'Failed to update user', variant: 'destructive' });
@@ -175,9 +255,30 @@ export default function MemberManagement() {
         toast({ title: 'Error', description: 'Email, password, and full name are required', variant: 'destructive' });
         return;
       }
-      await adminAPI.createUser(createForm);
+      
+      let dataToSend = createForm;
+      
+      // If there's an avatar file, we need to upload it
+      if (createAvatarFile) {
+        const formData = new FormData();
+        formData.append('avatar', createAvatarFile);
+        
+        // Add all other form fields
+        Object.keys(createForm).forEach(key => {
+          const value = createForm[key as keyof typeof createForm];
+          if (value !== undefined && value !== null) {
+            formData.append(key, typeof value === 'boolean' ? String(value) : String(value));
+          }
+        });
+        
+        dataToSend = formData as any;
+      }
+      
+      await adminAPI.createUser(dataToSend);
       toast({ title: 'Success', description: 'User created successfully' });
       setCreateDialogOpen(false);
+      setCreateAvatarFile(null);
+      setCreateAvatarPreview(null);
       fetchUsers();
     } catch (error: any) {
       toast({ title: 'Error', description: error.message || 'Failed to create user', variant: 'destructive' });
@@ -190,6 +291,10 @@ export default function MemberManagement() {
     if (user.membershipStatus === 'rejected') return <Badge variant="destructive">Rejected</Badge>;
     if (user.membershipStatus === 'pending') return <Badge variant="outline">Pending</Badge>;
     return <Badge variant="secondary">Unknown</Badge>;
+  };
+
+  const getInitials = (name: string) => {
+    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
   if (loading) return <Card className="p-12 flex justify-center"><RefreshCw className="h-8 w-8 animate-spin" /></Card>;
@@ -234,6 +339,7 @@ export default function MemberManagement() {
         <table className="min-w-full divide-y">
           <thead className="bg-gray-50">
             <tr>
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-16">Avatar</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tier</th>
@@ -244,6 +350,21 @@ export default function MemberManagement() {
           <tbody className="divide-y">
             {filteredUsers.map(u => (
               <tr key={u.id} className="hover:bg-gray-50">
+                <td className="px-4 py-3">
+                  {u.profilePictureUrl ? (
+                    <img 
+                      src={getFileUrl(u.profilePictureUrl)} 
+                      alt={u.fullName} 
+                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center border-2 border-gray-200">
+                      <span className="text-sm font-semibold text-white">
+                        {getInitials(u.fullName)}
+                      </span>
+                    </div>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   <div className="font-medium">{u.fullName}</div>
                   <div className="text-xs text-gray-500">{u.email}</div>
@@ -400,6 +521,53 @@ export default function MemberManagement() {
             
             <TabsContent value="basic" className="space-y-4">
               <div className="space-y-4">
+                {/* Avatar Upload Section */}
+                <div>
+                  <Label>Profile Avatar</Label>
+                  <div className="mt-2 flex items-center gap-4">
+                    {editAvatarPreview ? (
+                      <div className="relative">
+                        <img 
+                          src={editAvatarPreview} 
+                          alt="Avatar preview" 
+                          className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleEditAvatarRemove}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-2 border-dashed border-gray-300">
+                        <Upload className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        id="edit-avatar-upload"
+                        accept="image/*"
+                        onChange={handleEditAvatarChange}
+                        className="hidden"
+                      />
+                      <label htmlFor="edit-avatar-upload">
+                        <Button type="button" variant="outline" size="sm" className="cursor-pointer" asChild>
+                          <span>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload Avatar
+                          </span>
+                        </Button>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-2">
+                        JPG, PNG or GIF. Max size 5MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <Label htmlFor="edit-email">Email Address</Label>
                   <Input 
@@ -620,6 +788,53 @@ export default function MemberManagement() {
               </div>
               
               <div className="space-y-4">
+                {/* Avatar Upload Section */}
+                <div>
+                  <Label>Profile Avatar</Label>
+                  <div className="mt-2 flex items-center gap-4">
+                    {createAvatarPreview ? (
+                      <div className="relative">
+                        <img 
+                          src={createAvatarPreview} 
+                          alt="Avatar preview" 
+                          className="w-24 h-24 rounded-full object-cover border-2 border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCreateAvatarRemove}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-full bg-gray-200 flex items-center justify-center border-2 border-dashed border-gray-300">
+                        <Upload className="h-8 w-8 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <input
+                        type="file"
+                        id="create-avatar-upload"
+                        accept="image/*"
+                        onChange={handleCreateAvatarChange}
+                        className="hidden"
+                      />
+                      <label htmlFor="create-avatar-upload">
+                        <Button type="button" variant="outline" size="sm" className="cursor-pointer" asChild>
+                          <span>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Upload Avatar
+                          </span>
+                        </Button>
+                      </label>
+                      <p className="text-xs text-gray-500 mt-2">
+                        JPG, PNG or GIF. Max size 5MB.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <Label htmlFor="create-email">Email Address *</Label>
                   <Input 

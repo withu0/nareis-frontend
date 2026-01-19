@@ -1,6 +1,18 @@
 import axios, { AxiosInstance, AxiosError } from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BACKEND_URL = API_URL.replace('/api', ''); // Get backend base URL without /api
+
+// Helper function to get full URL for avatar/uploaded files
+export const getFileUrl = (relativePath: string | undefined | null): string => {
+  if (!relativePath) return '';
+  // If already a full URL, return as is
+  if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+    return relativePath;
+  }
+  // If relative path, prepend backend URL
+  return `${BACKEND_URL}${relativePath}`;
+};
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -151,12 +163,18 @@ export const adminAPI = {
   },
 
   createUser: async (data: any) => {
-    const response = await api.post('/admin/users', data);
+    const config = data instanceof FormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } : {};
+    const response = await api.post('/admin/users', data, config);
     return response.data;
   },
 
   updateUser: async (id: string, data: any) => {
-    const response = await api.put(`/admin/users/${id}`, data);
+    const config = data instanceof FormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } : {};
+    const response = await api.put(`/admin/users/${id}`, data, config);
     return response.data;
   },
 
