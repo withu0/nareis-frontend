@@ -9,9 +9,10 @@ interface EventCardProps {
   event: Event;
   onRegister: (eventId: string) => void;
   isRegistered?: boolean;
+  user?: any;
 }
 
-export function EventCard({ event, onRegister, isRegistered }: EventCardProps) {
+export function EventCard({ event, onRegister, isRegistered, user }: EventCardProps) {
   const isFull = event.capacity && event.registered_count && event.registered_count >= event.capacity;
   const spotsLeft = event.capacity ? event.capacity - (event.registered_count || 0) : null;
 
@@ -80,10 +81,10 @@ export function EventCard({ event, onRegister, isRegistered }: EventCardProps) {
       <CardFooter>
         <Button 
           onClick={() => onRegister(event.id)} 
-          disabled={isRegistered || isFull}
+          disabled={!user || isRegistered || isFull}
           className="w-full"
         >
-          {isRegistered ? 'Registered' : isFull ? 'Join Waitlist' : 'Register'}
+          {!user ? 'Login to Register' : isRegistered ? 'Registered' : isFull ? 'Join Waitlist' : 'Register'}
         </Button>
       </CardFooter>
     </Card>

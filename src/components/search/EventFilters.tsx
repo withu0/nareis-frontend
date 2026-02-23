@@ -20,9 +20,10 @@ interface Props {
   onExport: () => void;
   onOpenSaved: () => void;
   onOpenHistory: () => void;
+  user?: any;
 }
 
-export const EventFilters = ({ filters, onFilterChange, onExport, onOpenSaved, onOpenHistory }: Props) => {
+export const EventFilters = ({ filters, onFilterChange, onExport, onOpenSaved, onOpenHistory, user }: Props) => {
   const [saveName, setSaveName] = useState('');
   const [showSaveInput, setShowSaveInput] = useState(false);
   const { saveSearch, addToHistory } = useSearch();
@@ -55,12 +56,16 @@ export const EventFilters = ({ filters, onFilterChange, onExport, onOpenSaved, o
             className="pl-9"
           />
         </div>
-        <Button variant="outline" size="icon" onClick={onOpenHistory}>
-          <History className="h-4 w-4" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={onOpenSaved}>
-          <Bookmark className="h-4 w-4" />
-        </Button>
+        {user && (
+          <>
+            <Button variant="outline" size="icon" onClick={onOpenHistory}>
+              <History className="h-4 w-4" />
+            </Button>
+            <Button variant="outline" size="icon" onClick={onOpenSaved}>
+              <Bookmark className="h-4 w-4" />
+            </Button>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -125,12 +130,12 @@ export const EventFilters = ({ filters, onFilterChange, onExport, onOpenSaved, o
       </div>
 
       <div className="flex gap-2">
-        {!showSaveInput ? (
+        {user && !showSaveInput ? (
           <Button variant="outline" onClick={() => setShowSaveInput(true)}>
             <Save className="h-4 w-4 mr-2" />
             Save Search
           </Button>
-        ) : (
+        ) : user && (
           <div className="flex gap-2 flex-1">
             <Input
               placeholder="Search name..."

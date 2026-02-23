@@ -130,6 +130,10 @@ export default function Events() {
   };
 
   const handleRegister = (eventId: string) => {
+    if (!user) {
+      toast.error('Please log in to register for events');
+      return;
+    }
     const event = events.find(e => e.id === eventId);
     if (event) {
       setSelectedEvent(event);
@@ -138,6 +142,10 @@ export default function Events() {
   };
 
   const handleViewDetails = (event: Event) => {
+    if (!user) {
+      toast.error('Please log in to view event details');
+      return;
+    }
     setSelectedEvent(event);
     setShowEventDetails(true);
     loadAttendees(event.id); // Load attendees when opening event details
@@ -205,8 +213,21 @@ export default function Events() {
         filters={filters}
         onFilterChange={setFilters}
         onExport={handleExport}
-        onOpenSaved={() => setShowSavedSearches(true)}
-        onOpenHistory={() => setShowSearchHistory(true)}
+        onOpenSaved={() => {
+          if (!user) {
+            toast.error('Please log in to access saved searches');
+            return;
+          }
+          setShowSavedSearches(true);
+        }}
+        onOpenHistory={() => {
+          if (!user) {
+            toast.error('Please log in to access search history');
+            return;
+          }
+          setShowSearchHistory(true);
+        }}
+        user={user}
       />
 
       <div className="my-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -241,8 +262,8 @@ export default function Events() {
       {viewMode === 'grid' ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredEvents.map(event => (
-            <div key={event.id} onClick={() => handleViewDetails(event)} className="cursor-pointer">
-              <EventCard event={event} onRegister={handleRegister} />
+            <div key={event.id} onClick={() => handleViewDetails(event)} className={user ? "cursor-pointer" : "cursor-not-allowed opacity-75"}>
+              <EventCard event={event} onRegister={handleRegister} user={user} />
             </div>
           ))}
         </div>
@@ -256,6 +277,7 @@ export default function Events() {
 
 
       {/* Event Details Dialog */}
+      {user && (
       <Dialog open={showEventDetails} onOpenChange={setShowEventDetails}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -314,8 +336,10 @@ export default function Events() {
           )}
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Registration Dialog */}
+      {user && (
       <Dialog open={showRegistration} onOpenChange={setShowRegistration}>
         <DialogContent>
           <DialogHeader>
@@ -326,7 +350,7 @@ export default function Events() {
               eventId={selectedEvent.id}
               eventTitle={selectedEvent.title}
               userEmail={user.email}
-              userName={user.name || ''}
+              userName={user.fullName || ''}
               onSuccess={() => {
                 setShowRegistration(false);
                 loadEvents(); // Reload events to update registration count
@@ -338,8 +362,10 @@ export default function Events() {
           )}
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Create Event Dialog */}
+      {user && (
       <Dialog open={showCreateEvent} onOpenChange={setShowCreateEvent}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -352,8 +378,10 @@ export default function Events() {
           }} />
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Follow-Up Dialog */}
+      {user && (
       <Dialog open={showFollowUp} onOpenChange={setShowFollowUp}>
         <DialogContent>
           <DialogHeader>
@@ -371,7 +399,10 @@ export default function Events() {
           </div>
         </DialogContent>
       </Dialog>
+      )}
 
+      {user && (
+      <>
       <SavedSearchesDialog
         open={showSavedSearches}
         onOpenChange={setShowSavedSearches}
@@ -385,6 +416,8 @@ export default function Events() {
         onApplySearch={(query) => setFilters({ ...filters, search: query })}
         section="events"
       />
+      </>
+      )}
     </div>
   );
 }

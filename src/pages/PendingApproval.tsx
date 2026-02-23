@@ -40,8 +40,8 @@ export default function PendingApproval() {
         const userData = response.data.user;
         setMemberData(userData);
         
-        // If user has active membership (payment completed), redirect to dashboard
-        if (userData.membershipStatus === 'active') {
+        // Only redirect to dashboard when admin has approved (not just payment completed)
+        if (userData.approvalStatus === 'approved') {
           navigate('/dashboard');
         }
       }

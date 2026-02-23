@@ -119,7 +119,7 @@ const App = () => {
                 {/* Protected member routes */}
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+                <Route path="/events" element={<Events />} />
                 <Route path="/advocacy" element={<ProtectedRoute><Advocacy /></ProtectedRoute>} />
                 <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
                 <Route path="/market-reports" element={<ProtectedRoute><MarketReports /></ProtectedRoute>} />
