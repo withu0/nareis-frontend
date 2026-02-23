@@ -212,12 +212,18 @@ export const eventsAPI = {
   },
 
   create: async (data: any) => {
-    const response = await api.post('/events', data);
+    const config = data instanceof FormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } : {};
+    const response = await api.post('/events', data, config);
     return response.data;
   },
 
   update: async (id: string, data: any) => {
-    const response = await api.put(`/events/${id}`, data);
+    const config = data instanceof FormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } : {};
+    const response = await api.put(`/events/${id}`, data, config);
     return response.data;
   },
 
@@ -226,8 +232,8 @@ export const eventsAPI = {
     return response.data;
   },
 
-  register: async (eventId: string) => {
-    const response = await api.post(`/events/${eventId}/register`);
+  register: async (eventId: string, data?: any) => {
+    const response = await api.post(`/events/${eventId}/register`, data || {});
     return response.data;
   },
 
@@ -243,6 +249,14 @@ export const eventsAPI = {
 
   getRegistrations: async (eventId: string) => {
     const response = await api.get(`/events/${eventId}/registrations`);
+    return response.data;
+  },
+};
+
+// Statistics API
+export const statisticsAPI = {
+  getPublicStats: async () => {
+    const response = await api.get('/statistics/public');
     return response.data;
   },
 };

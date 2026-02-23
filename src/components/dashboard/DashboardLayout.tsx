@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { getFileUrl } from '@/lib/api';
 import { 
   LayoutDashboard, 
   Users, 
@@ -199,7 +200,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <div className="flex items-center gap-3 px-3">
                 {user.profilePictureUrl ? (
                   <img 
-                    src={user.profilePictureUrl} 
+                    src={getFileUrl(user.profilePictureUrl)} 
                     alt={user.fullName}
                     className="w-10 h-10 rounded-full object-cover border-2 border-teal-200"
                   />

@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { Event } from '@/types/event';
 import { fetchEvents } from '@/lib/eventService';
+import { eventsAPI } from '@/lib/api';
 import { Plus, Calendar, Users, MessageSquare, Grid, CalendarDays } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +37,8 @@ export default function Events() {
     cost: 'all',
   });
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [attendees, setAttendees] = useState<any[]>([]);
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [showRegistration, setShowRegistration] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState(false);
@@ -81,14 +84,23 @@ export default function Events() {
     scrollableRef,
   } = usePullToRefresh({ onRefresh: handleRefresh });
 
-  const mockAttendees = [
-    { id: '1', name: 'John Smith', email: 'john@example.com', membershipTier: 'Enterprise Member', checkedIn: true },
-    { id: '2', name: 'Sarah Johnson', email: 'sarah@example.com', membershipTier: 'Professional Member', checkedIn: true },
-    { id: '3', name: 'Michael Brown', email: 'michael@example.com', membershipTier: 'Foundation Member', checkedIn: false },
-    { id: '4', name: 'Emily Davis', email: 'emily@example.com', membershipTier: 'Growth Member', checkedIn: true }
-  ];
-
-
+  const loadAttendees = async (eventId: string) => {
+    setLoadingAttendees(true);
+    try {
+      const response = await eventsAPI.getRegistrations(eventId);
+      if (response.data?.registrations) {
+        setAttendees(response.data.registrations);
+      } else {
+        setAttendees([]);
+      }
+    } catch (error) {
+      console.error('Error loading attendees:', error);
+      setAttendees([]);
+      toast.error('Failed to load attendees');
+    } finally {
+      setLoadingAttendees(false);
+    }
+  };
 
   const filteredEvents = useMemo(() => {
     return events.filter(event => {
@@ -128,6 +140,7 @@ export default function Events() {
   const handleViewDetails = (event: Event) => {
     setSelectedEvent(event);
     setShowEventDetails(true);
+    loadAttendees(event.id); // Load attendees when opening event details
   };
 
   const handleSendFollowUp = () => {
@@ -281,7 +294,21 @@ export default function Events() {
                 )}
               </TabsContent>
               <TabsContent value="attendees">
-                <EventAttendeeList attendees={mockAttendees} capacity={selectedEvent.capacity} />
+                {loadingAttendees ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-3 w-1/3" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EventAttendeeList attendees={attendees} capacity={selectedEvent.capacity} />
+                )}
               </TabsContent>
             </Tabs>
           )}
@@ -300,7 +327,13 @@ export default function Events() {
               eventTitle={selectedEvent.title}
               userEmail={user.email}
               userName={user.name || ''}
-              onSuccess={() => setShowRegistration(false)}
+              onSuccess={() => {
+                setShowRegistration(false);
+                loadEvents(); // Reload events to update registration count
+                if (selectedEvent) {
+                  loadAttendees(selectedEvent.id); // Reload attendees list
+                }
+              }}
             />
           )}
         </DialogContent>
@@ -313,7 +346,10 @@ export default function Events() {
             <DialogTitle>Create Networking Event</DialogTitle>
             <DialogDescription>Create a new event for your chapter members</DialogDescription>
           </DialogHeader>
-          <EventCreationForm onSuccess={() => setShowCreateEvent(false)} />
+          <EventCreationForm onSuccess={() => {
+            setShowCreateEvent(false);
+            loadEvents(); // Reload events to show the newly created event
+          }} />
         </DialogContent>
       </Dialog>
 

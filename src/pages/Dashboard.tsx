@@ -44,19 +44,14 @@ export default function Dashboard() {
     if (!user) return;
 
     try {
-      const { data, error } = await supabase
-        .from('onboarding_tours')
-        .select('completed')
-        .eq('user_id', user.id)
-        .eq('tour_type', 'platform_tour')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (!data && !error) {
+      // TODO: Implement onboarding tours in Node.js backend if needed
+      // For now, check localStorage for tour completion
+      const tourStatus = localStorage.getItem(`tour_completed_${user.id}`);
+      if (tourStatus === 'true') {
+        setTourCompleted(true);
+      } else {
+        // Show tour to new users
         setShowTour(true);
-      } else if (data) {
-        setTourCompleted(data.completed);
       }
     } catch (error) {
       console.error('Error checking tour status:', error);

@@ -5,7 +5,6 @@ import { Star, MapPin, Briefcase, ExternalLink, AlertTriangle } from 'lucide-rea
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { FeaturedMembershipForm } from './FeaturedMembershipForm';
-import { supabase } from '@/lib/supabase';
 import {
   Dialog,
   DialogContent,
@@ -63,30 +62,12 @@ const FeaturedMembers: React.FC = () => {
 
   const fetchFeaturedMembers = async () => {
     try {
-      const now = new Date().toISOString();
-      
-      const { data, error } = await supabase
-        .from('featured_memberships')
-        .select('id, company_name, logo_url, website_url, status, end_date, payment_status')
-        .eq('status', 'active')
-        .eq('payment_status', 'completed')
-        .gte('end_date', now)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching featured members:', error);
-        // Keep using static members on error
-        return;
-      }
-
-      // Use database members if available, otherwise use static
-      if (data && data.length > 0) {
-        setFeaturedMembers(data);
-      } else {
-        setFeaturedMembers(staticFeaturedMembers);
-      }
+      // TODO: Implement featured memberships in backend
+      // For now, using static members
+      setFeaturedMembers(staticFeaturedMembers);
     } catch (error) {
       console.error('Error:', error);
+      setFeaturedMembers(staticFeaturedMembers);
     } finally {
       setLoading(false);
     }

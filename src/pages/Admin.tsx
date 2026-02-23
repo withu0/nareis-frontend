@@ -102,7 +102,7 @@ export default function Admin() {
         </div>
 
         {/* Main Content Tabs */}
-        {/* <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="flex flex-wrap gap-2 bg-white p-2 rounded-lg border">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="realtime">Real-Time</TabsTrigger>
@@ -159,7 +159,7 @@ export default function Admin() {
               <BroadcastNotifications />
             </div>
           </TabsContent>
-        </Tabs> */}
+        </Tabs>
       </div>
     </AdminLayout>
   );

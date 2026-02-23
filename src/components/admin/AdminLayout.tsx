@@ -11,6 +11,7 @@ import {
   Bell,
   ChevronLeft,
   ChevronRight,
+  Calendar,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -40,6 +41,7 @@ export function AdminLayout({ children, stats }: AdminLayoutProps) {
   const navItems: NavItem[] = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: Users, label: 'User Management', path: '/admin/user', badge: stats?.pendingCount },
+    { icon: Calendar, label: 'Event Management', path: '/admin/event' },
   ];
 
   const handleNavigation = (path: string) => {
@@ -215,10 +217,18 @@ export function AdminLayout({ children, stats }: AdminLayoutProps) {
               </Button>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
-                  {location.pathname === '/admin/user' ? 'User Management' : 'Admin Dashboard'}
+                  {location.pathname === '/admin/user' 
+                    ? 'User Management' 
+                    : location.pathname === '/admin/event'
+                    ? 'Event Management'
+                    : 'Admin Dashboard'}
                 </h1>
                 <p className="text-sm text-gray-500">
-                  {location.pathname === '/admin/user' ? 'Manage users and memberships' : 'Overview and analytics'}
+                  {location.pathname === '/admin/user' 
+                    ? 'Manage users and memberships' 
+                    : location.pathname === '/admin/event'
+                    ? 'Manage events and registrations'
+                    : 'Overview and analytics'}
                 </p>
               </div>
             </div>

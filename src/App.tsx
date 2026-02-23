@@ -19,6 +19,7 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import UserManagement from "./pages/UserManagement";
+import EventManagementAdmin from "./pages/EventManagementAdmin";
 import Events from "./pages/Events";
 import Advocacy from "./pages/Advocacy";
 import Resources from "./pages/Resources";
@@ -74,7 +75,12 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
             <AuthProvider>
               {/* Session diagnostic - only shows in development */}
               {/* <SessionDiagnostic /> */}
@@ -130,6 +136,7 @@ const App = () => {
                 {/* Admin routes */}
                 <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
                 <Route path="/admin/user" element={<AdminRoute><UserManagement /></AdminRoute>} />
+                <Route path="/admin/event" element={<AdminRoute><EventManagementAdmin /></AdminRoute>} />
                 <Route path="/admin/featured-memberships" element={<AdminRoute><FeaturedMembershipsAdmin /></AdminRoute>} />
                 <Route path="/admin/advertisements" element={<AdminRoute><AdManagement /></AdminRoute>} />
                 <Route path="/admin/approval-queue" element={<AdminRoute><ApprovalQueue /></AdminRoute>} />

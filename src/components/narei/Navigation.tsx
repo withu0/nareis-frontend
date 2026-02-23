@@ -4,6 +4,7 @@ import { Menu, X, LogOut, User as UserIcon, ChevronDown, Settings, LayoutDashboa
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import { getFileUrl } from '@/lib/api';
 
 const Navigation: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -133,7 +134,7 @@ const Navigation: React.FC = () => {
                     {/* User Avatar */}
                     {user.profilePictureUrl ? (
                       <img 
-                        src={user.profilePictureUrl} 
+                        src={getFileUrl(user.profilePictureUrl)} 
                         alt={user.fullName}
                         className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
                       />
@@ -288,7 +289,7 @@ const Navigation: React.FC = () => {
                     {/* User Avatar */}
                     {user.profilePictureUrl ? (
                       <img 
-                        src={user.profilePictureUrl} 
+                        src={getFileUrl(user.profilePictureUrl)} 
                         alt={user.fullName}
                         className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
                       />

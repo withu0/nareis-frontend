@@ -1,7 +1,8 @@
 // Temporary stub - allows app to compile during migration to Node.js backend
 // This file will be removed once migration is complete
+// Returns empty data without errors to prevent toasts
 
-const mockResponse = { data: null, error: { message: 'Migrating to Node.js backend' } };
+const mockResponse = { data: null, error: null };
 
 // Helper to create chainable query methods
 const createChainableMethods = (): any => ({

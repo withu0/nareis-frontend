@@ -70,14 +70,15 @@ export async function fetchMembers(): Promise<{ data: Member[]; fromDatabase: bo
 export async function fetchMembersRaw(): Promise<{ data: SupabaseMember[]; error: string | null; tableExists: boolean }> {
   try {
     // Returning empty data during migration to Node.js backend
+    // Using mock data from membersDirectory instead
     return { 
       data: [], 
-      error: 'Migrating to Node.js backend - using mock data', 
+      error: null, 
       tableExists: false 
     };
   } catch (err: any) {
     console.error('Fetch error:', err);
-    return { data: [], error: err.message || 'Network error', tableExists: false };
+    return { data: [], error: null, tableExists: false };
   }
 }
 

@@ -95,10 +95,19 @@ export const EventFilters = ({ filters, onFilterChange, onExport, onOpenSaved, o
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="conference">Conference</SelectItem>
-            <SelectItem value="webinar">Webinar</SelectItem>
-            <SelectItem value="networking">Networking</SelectItem>
-            <SelectItem value="workshop">Workshop</SelectItem>
+            <SelectItem value="Networking">Networking</SelectItem>
+            <SelectItem value="Webinar">Webinar</SelectItem>
+            <SelectItem value="Workshop">Workshop</SelectItem>
+            <SelectItem value="Conference">Conference</SelectItem>
+            <SelectItem value="Seminar">Seminar</SelectItem>
+            <SelectItem value="Training">Training</SelectItem>
+            <SelectItem value="Panel Discussion">Panel Discussion</SelectItem>
+            <SelectItem value="Meetup">Meetup</SelectItem>
+            <SelectItem value="Social Event">Social Event</SelectItem>
+            <SelectItem value="Fundraiser">Fundraiser</SelectItem>
+            <SelectItem value="Awards Ceremony">Awards Ceremony</SelectItem>
+            <SelectItem value="Trade Show">Trade Show</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
           </SelectContent>
         </Select>
 
