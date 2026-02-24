@@ -256,8 +256,20 @@ export const eventsAPI = {
 // Statistics API
 export const statisticsAPI = {
   getPublicStats: async () => {
-    const response = await api.get('/statistics/public');
-    return response.data;
+    try {
+      const response = await api.get('/statistics/public');
+      // Backend returns: { data: {...}, error: null }
+      // But axios wraps it, so response.data = { data: {...}, error: null }
+      if (response.data.error) {
+        return { data: null, error: response.data.error };
+      }
+      return { data: response.data.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.error || error.message || 'Failed to fetch statistics' 
+      };
+    }
   },
 };
 
