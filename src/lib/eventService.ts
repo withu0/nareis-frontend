@@ -1,4 +1,4 @@
-import { eventsAPI } from './api';
+import { eventsAPI, BACKEND_URL } from './api';
 import { Event } from '@/types/event';
 import { networkingEvents } from '@/data/networkingEvents';
 
@@ -41,8 +41,7 @@ export function transformBackendEvent(event: BackendEvent): Event {
       return imageUrl;
     }
     // If it's a relative path, prepend backend URL
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-    const fullUrl = `${backendUrl}${imageUrl}`;
+    const fullUrl = `${BACKEND_URL}${imageUrl}`;
     console.log('🔄 Transformed image URL:', imageUrl, '->', fullUrl);
     return fullUrl;
   };

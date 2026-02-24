@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { eventsAPI } from '@/lib/api';
+import { eventsAPI, BACKEND_URL } from '@/lib/api';
 import { Plus, Edit, Trash, Users, RefreshCw, ImageIcon, X, Calendar as CalendarIcon, MapPin, Video, DollarSign, Users as UsersIcon, Eye, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -133,8 +133,7 @@ export default function EventManagement() {
     });
     // Show existing image preview if available
     if (event.imageUrl) {
-      const backendUrl = 'http://localhost:5000';
-      setImagePreview(`${backendUrl}${event.imageUrl}`);
+      setImagePreview(`${BACKEND_URL}${event.imageUrl}`);
     } else {
       setImagePreview(null);
     }
