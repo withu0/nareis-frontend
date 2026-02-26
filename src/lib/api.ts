@@ -273,4 +273,17 @@ export const statisticsAPI = {
   },
 };
 
+// Members API
+export const membersAPI = {
+  getMembers: async () => {
+    const response = await api.get('/members');
+    return response.data;
+  },
+
+  getMemberById: async (id: string) => {
+    const response = await api.get(`/members/${id}`);
+    return response.data;
+  },
+};
+
 export default api;
