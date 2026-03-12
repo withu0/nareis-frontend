@@ -56,10 +56,13 @@ export default function PaymentStep({ data, onComplete }: PaymentStepProps) {
       console.log('[STRIPE] User ID:', user.id);
       console.log('[STRIPE] Tier:', tier);
       
+      const searchParams = new URLSearchParams(window.location.search);
+      const promotionCode = searchParams.get('code') || searchParams.get('promo') || undefined;
       const response = await stripeAPI.createCheckoutSession({
         tier,
         successUrl: `${window.location.origin}/onboarding?payment=success&session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
         cancelUrl: `${window.location.origin}/onboarding?payment=cancel`,
+        ...(promotionCode ? { promotionCode } : {}),
       });
 
       if (response.error) {

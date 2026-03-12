@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
+  TicketIcon,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
@@ -42,6 +43,7 @@ export function AdminLayout({ children, stats }: AdminLayoutProps) {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
     { icon: Users, label: 'User Management', path: '/admin/user', badge: stats?.pendingCount },
     { icon: Calendar, label: 'Event Management', path: '/admin/event' },
+    { icon: TicketIcon, label: 'Coupon Management', path: '/admin/coupons' },
   ];
 
   const handleNavigation = (path: string) => {
@@ -217,17 +219,21 @@ export function AdminLayout({ children, stats }: AdminLayoutProps) {
               </Button>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">
-                  {location.pathname === '/admin/user' 
-                    ? 'User Management' 
+                  {location.pathname === '/admin/user'
+                    ? 'User Management'
                     : location.pathname === '/admin/event'
                     ? 'Event Management'
+                    : location.pathname === '/admin/coupons'
+                    ? 'Coupon Management'
                     : 'Admin Dashboard'}
                 </h1>
                 <p className="text-sm text-gray-500">
-                  {location.pathname === '/admin/user' 
-                    ? 'Manage users and memberships' 
+                  {location.pathname === '/admin/user'
+                    ? 'Manage users and memberships'
                     : location.pathname === '/admin/event'
                     ? 'Manage events and registrations'
+                    : location.pathname === '/admin/coupons'
+                    ? 'Manage coupons and promotion codes'
                     : 'Overview and analytics'}
                 </p>
               </div>

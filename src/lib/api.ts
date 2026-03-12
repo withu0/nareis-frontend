@@ -108,6 +108,21 @@ export const userAPI = {
     const response = await api.get('/user/subscription');
     return response.data;
   },
+
+  requestDowngrade: async (tier: string) => {
+    const response = await api.put('/user/subscription', { tier });
+    return response.data;
+  },
+
+  cancelSubscription: async () => {
+    const response = await api.post('/user/subscription/cancel');
+    return response.data;
+  },
+
+  reactivateSubscription: async () => {
+    const response = await api.post('/user/subscription/reactivate');
+    return response.data;
+  },
 };
 
 // Stripe API
@@ -190,6 +205,44 @@ export const adminAPI = {
 
   rejectUser: async (id: string) => {
     const response = await api.put(`/admin/users/${id}/reject`);
+    return response.data;
+  },
+
+  getCoupons: async () => {
+    const response = await api.get('/admin/coupons');
+    return response.data;
+  },
+
+  createCoupon: async (body: {
+    percentOff?: number;
+    amountOff?: number;
+    currency?: string;
+    duration: string;
+    durationInMonths?: number;
+    name?: string;
+    maxRedemptions?: number;
+    redeemBy?: string;
+  }) => {
+    const response = await api.post('/admin/coupons', body);
+    return response.data;
+  },
+
+  createPromotionCode: async (
+    couponId: string,
+    body: { code: string; maxRedemptions?: number; expiresAt?: string }
+  ) => {
+    const response = await api.post(`/admin/coupons/${couponId}/promotion-codes`, body);
+    return response.data;
+  },
+
+  getPromotionCodes: async (couponId?: string) => {
+    const params = couponId ? `?coupon=${encodeURIComponent(couponId)}` : '';
+    const response = await api.get(`/admin/promotion-codes${params}`);
+    return response.data;
+  },
+
+  deactivatePromotionCode: async (id: string) => {
+    const response = await api.patch(`/admin/promotion-codes/${id}`);
     return response.data;
   },
 };

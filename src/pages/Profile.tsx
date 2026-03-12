@@ -9,37 +9,57 @@ import { NotificationPreferences } from '@/components/profile/NotificationPrefer
 import { MemberBadgeDownload } from '@/components/profile/MemberBadgeDownload';
 import SubscriptionManagement from '@/components/stripe/SubscriptionManagement';
 import PaymentHistory from '@/components/stripe/PaymentHistory';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { BackButton } from '@/components/ui/back-button';
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-
-
+import { userAPI, stripeAPI } from '@/lib/api';
+import { toast } from 'sonner';
 
 export default function Profile() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [membershipTier, setMembershipTier] = useState<string>('');
   const [isPaidMember, setIsPaidMember] = useState(false);
 
+  // Handle upgrade success redirect from Stripe Checkout
   useEffect(() => {
-    if (user) {
-      // Fetch membership status from customers table
-      const fetchMembershipStatus = async () => {
-        const { data } = await supabase
-          .from('customers')
-          .select('membership_tier, subscription_status')
-          .eq('id', user.id)
-          .single();
-
-        if (data) {
-          setMembershipTier(data.membership_tier || 'Free');
-          setIsPaidMember(
-            data.subscription_status === 'active' || 
-            ['professional', 'enterprise', 'founding-lifetime', 'service-partner'].includes(data.membership_tier || '')
-          );
+    const upgrade = searchParams.get('upgrade');
+    const sessionId = searchParams.get('session_id');
+    const tier = searchParams.get('tier');
+    if (upgrade === 'success' && sessionId && tier) {
+      const verify = async () => {
+        try {
+          const res = await stripeAPI.verifyPayment(sessionId, tier);
+          if (res.data?.success) {
+            toast.success('Upgrade complete. Your plan has been updated.');
+            setSearchParams({}, { replace: true });
+          }
+        } catch (e) {
+          toast.error('Could not verify payment. Please contact support if your card was charged.');
         }
       };
+      verify();
+    }
+  }, [searchParams, setSearchParams]);
 
+  useEffect(() => {
+    if (user) {
+      const fetchMembershipStatus = async () => {
+        try {
+          const res = await userAPI.getSubscription();
+          if (res.data) {
+            const tier = res.data.membershipTier || 'Free';
+            setMembershipTier(tier);
+            setIsPaidMember(
+              res.data.membershipStatus === 'active' ||
+              ['professional', 'enterprise', 'founding', 'stakeholder', 'growth', 'foundation'].includes(tier)
+            );
+          }
+        } catch {
+          setMembershipTier('Free');
+          setIsPaidMember(false);
+        }
+      };
       fetchMembershipStatus();
     }
   }, [user]);

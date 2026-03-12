@@ -20,6 +20,7 @@ import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import UserManagement from "./pages/UserManagement";
 import EventManagementAdmin from "./pages/EventManagementAdmin";
+import CouponManagementAdmin from "./pages/CouponManagementAdmin";
 import Events from "./pages/Events";
 import Advocacy from "./pages/Advocacy";
 import Resources from "./pages/Resources";
@@ -137,6 +138,7 @@ const App = () => {
                 <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
                 <Route path="/admin/user" element={<AdminRoute><UserManagement /></AdminRoute>} />
                 <Route path="/admin/event" element={<AdminRoute><EventManagementAdmin /></AdminRoute>} />
+                <Route path="/admin/coupons" element={<AdminRoute><CouponManagementAdmin /></AdminRoute>} />
                 <Route path="/admin/featured-memberships" element={<AdminRoute><FeaturedMembershipsAdmin /></AdminRoute>} />
                 <Route path="/admin/advertisements" element={<AdminRoute><AdManagement /></AdminRoute>} />
                 <Route path="/admin/approval-queue" element={<AdminRoute><ApprovalQueue /></AdminRoute>} />

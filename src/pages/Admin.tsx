@@ -17,6 +17,7 @@ import AdminSettings from '@/components/admin/AdminSettings';
 import { Badge } from '@/components/ui/badge';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import EventManagement from '@/components/admin/EventManagement';
+import CouponManagement from '@/components/admin/CouponManagement';
 
 import { adminAPI } from '@/lib/api';
 
@@ -102,7 +103,7 @@ export default function Admin() {
         </div>
 
         {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+        {/* <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="flex flex-wrap gap-2 bg-white p-2 rounded-lg border">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="realtime">Real-Time</TabsTrigger>
@@ -113,6 +114,7 @@ export default function Admin() {
             <TabsTrigger value="revenue">Revenue</TabsTrigger>
             <TabsTrigger value="behavior">Behavior</TabsTrigger>
             <TabsTrigger value="cms">CMS</TabsTrigger>
+            <TabsTrigger value="coupons">Coupons</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -152,6 +154,10 @@ export default function Admin() {
             <ContentManagement />
           </TabsContent>
           
+          <TabsContent value="coupons">
+            <CouponManagement />
+          </TabsContent>
+          
           <TabsContent value="settings">
             <div className="space-y-6">
               <AdminSettings />
@@ -159,7 +165,7 @@ export default function Admin() {
               <BroadcastNotifications />
             </div>
           </TabsContent>
-        </Tabs>
+        </Tabs> */}
       </div>
     </AdminLayout>
   );
