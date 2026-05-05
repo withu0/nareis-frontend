@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Megaphone, BookOpen, Calendar, FileText, Settings, CreditCard, Mail } from 'lucide-react';
+import { Users, Megaphone, BookOpen, Calendar, FileText, Settings, CreditCard, Mail, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function QuickAccessLinks() {
@@ -30,6 +30,12 @@ export default function QuickAccessLinks() {
       label: 'Events', 
       description: 'Register for events',
       action: () => navigate('/events')
+    },
+    {
+      icon: <Building2 className="h-5 w-5" />,
+      label: 'Property Marketing',
+      description: 'Post deals & leads',
+      action: () => navigate('/property-marketing')
     },
     { 
       icon: <CreditCard className="h-5 w-5" />, 

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { SEOHead } from '@/components/SEOHead';
-import { BackButton } from '@/components/ui/back-button';
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -69,20 +69,26 @@ export default function Billing() {
   ];
 
   return (
-    <>
+    <DashboardLayout>
       <SEOHead title="Billing Management - NAREIS" description="Manage your subscription, payment methods, and invoices" />
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white py-12">
-          <div className="container mx-auto px-4">
-            <h1 className="text-3xl font-bold">Billing & Subscription</h1>
-            <p className="text-blue-100 mt-2">Manage your payment methods, invoices, and subscription</p>
+
+      <div data-tour="billing">
+        <div className="relative bg-gradient-to-r from-teal-600 via-emerald-600 to-cyan-600 text-white overflow-hidden">
+          <div className="absolute inset-0 bg-grid-white/[0.05] bg-[size:20px_20px]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent" />
+          <div className="relative container mx-auto px-4 py-8 md:py-12">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-white to-teal-100 flex items-center gap-3">
+              <CreditCard className="h-9 w-9 shrink-0 opacity-95" />
+              Billing &amp; subscription
+            </h1>
+            <p className="text-teal-50 text-sm md:text-base font-medium max-w-2xl">
+              Manage payment methods, invoices, and your plan through Stripe.
+            </p>
           </div>
         </div>
 
-        <div className="container mx-auto px-4 py-8">
-          <BackButton />
-
-          <div className="grid lg:grid-cols-3 gap-8 mt-6">
+        <div className="container mx-auto px-4 py-8 max-w-6xl">
+          <div className="grid lg:grid-cols-3 gap-8">
             {/* Main Portal Card */}
             <div className="lg:col-span-2 space-y-6">
               <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-indigo-50">
@@ -161,6 +167,6 @@ export default function Billing() {
           </div>
         </div>
       </div>
-    </>
+    </DashboardLayout>
   );
 }

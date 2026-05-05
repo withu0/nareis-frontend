@@ -23,12 +23,14 @@ import {
   MapPin,
   BarChart3,
   FileText,
-  Target
+  Target,
+  Building2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { ScrollToTopButton } from '@/components/ScrollToTopButton';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -43,18 +45,19 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { title: 'My Analytics', href: '/my-analytics', icon: BarChart3, badge: 'New' },
-  { title: 'Events', href: '/events', icon: Calendar },
-  { title: 'Resources', href: '/resources', icon: BookOpen },
-  { title: 'Forums', href: '/forums', icon: MessageSquare },
-  { title: 'Videos', href: '/videos', icon: Video },
-  { title: 'Member Directory', href: '/member-directory', icon: Users },
-  { title: 'Job Board', href: '/jobs', icon: Briefcase },
-  { title: 'Certification', href: '/certification', icon: Award },
-  { title: 'Advocacy', href: '/advocacy', icon: Target },
-  { title: 'Market Reports', href: '/market-reports', icon: FileText },
-  { title: 'Find Chapter', href: '/find-local-chapter', icon: MapPin },
-  { title: 'Referral Program', href: '/referral-program', icon: TrendingUp },
+  // { title: 'My Analytics', href: '/my-analytics', icon: BarChart3, badge: 'New' },
+  // { title: 'Events', href: '/events', icon: Calendar },
+  // { title: 'Resources', href: '/resources', icon: BookOpen },
+  // { title: 'Forums', href: '/forums', icon: MessageSquare },
+  // { title: 'Videos', href: '/videos', icon: Video },
+  // { title: 'Member Directory', href: '/member-directory', icon: Users },
+  // { title: 'Job Board', href: '/jobs', icon: Briefcase },
+  // { title: 'Certification', href: '/certification', icon: Award },
+  // { title: 'Advocacy', href: '/advocacy', icon: Target },
+  // { title: 'Market Reports', href: '/market-reports', icon: FileText },
+  { title: 'Property Marketing', href: '/my-property-marketing', icon: Building2 },
+  // { title: 'Find Chapter', href: '/find-local-chapter', icon: MapPin },
+  // { title: 'Referral Program', href: '/referral-program', icon: TrendingUp },
 ];
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -325,6 +328,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       >
         {children}
       </main>
+
+      <ScrollToTopButton />
     </div>
   );
 }

@@ -163,7 +163,7 @@ export default function SubscriptionManagement() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-2xl font-bold">{currentTier?.name || 'No Plan'}</h3>
-              <p className="text-muted-foreground">${currentTier?.amount ?? 0} one-time</p>
+              <p className="text-muted-foreground">${currentTier?.amount ?? 0} per year</p>
             </div>
             <Badge variant={isActive ? 'default' : 'secondary'}>
               {subscription?.membership_status || 'pending'}
@@ -211,7 +211,7 @@ export default function SubscriptionManagement() {
           <Card>
             <CardHeader>
               <CardTitle>Upgrade Your Plan</CardTitle>
-              <CardDescription>Pay once for a higher tier. You can use a promotion code at checkout.</CardDescription>
+              <CardDescription>Upgrade to a higher tier (billed annually). You can use a promotion code at checkout.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {tiers
@@ -246,7 +246,7 @@ export default function SubscriptionManagement() {
                   <div key={tier.id} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <h4 className="font-semibold">{tier.name}</h4>
-                      <p className="text-sm text-muted-foreground">${tier.amount} one-time</p>
+                      <p className="text-sm text-muted-foreground">${tier.amount} per year</p>
                     </div>
                     <Button
                       variant="outline"

@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosError, AxiosHeaders } from 'axios';
 
 const API_URL = import.meta.env.VITE_API_URL|| 'http://localhost:5000/api' ;
 export const BACKEND_URL = API_URL.replace('/api', ''); // Get backend base URL without /api
@@ -28,6 +28,14 @@ api.interceptors.request.use(
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Default Content-Type: application/json breaks multipart uploads — multer never sees files.
+    if (config.data instanceof FormData) {
+      if (config.headers instanceof AxiosHeaders) {
+        config.headers.delete('Content-Type');
+      } else if (config.headers && typeof config.headers === 'object') {
+        delete (config.headers as Record<string, unknown>)['Content-Type'];
+      }
     }
     return config;
   },
@@ -245,6 +253,56 @@ export const adminAPI = {
     const response = await api.patch(`/admin/promotion-codes/${id}`);
     return response.data;
   },
+
+  /** Property marketing listings (admin CRUD) */
+  getPropertyListings: async (filters?: { status?: string; search?: string; visibility?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.visibility) params.append('visibility', filters.visibility);
+    const q = params.toString();
+    const response = await api.get(`/admin/property-listings${q ? `?${q}` : ''}`);
+    return response.data;
+  },
+
+  getPropertyListing: async (id: string) => {
+    const response = await api.get(`/admin/property-listings/${encodeURIComponent(id)}`);
+    return response.data;
+  },
+
+  createPropertyListing: async (formData: FormData) => {
+    const response = await api.post('/admin/property-listings', formData);
+    return response.data;
+  },
+
+  updatePropertyListing: async (
+    id: string,
+    body: {
+      ownerId?: string;
+      location?: string;
+      dealType?: string;
+      squareFootage?: number;
+      priceMin?: number;
+      priceMax?: number;
+      estimatedArv?: number;
+      status?: 'active' | 'archived';
+      visibility?: 'visible' | 'hidden';
+      imageUrls?: string[];
+    }
+  ) => {
+    const response = await api.put(`/admin/property-listings/${encodeURIComponent(id)}`, body);
+    return response.data;
+  },
+
+  appendPropertyListingImages: async (id: string, formData: FormData) => {
+    const response = await api.post(`/admin/property-listings/${encodeURIComponent(id)}/images`, formData);
+    return response.data;
+  },
+
+  deletePropertyListing: async (id: string) => {
+    const response = await api.delete(`/admin/property-listings/${encodeURIComponent(id)}`);
+    return response.data;
+  },
 };
 
 // Events API
@@ -335,6 +393,133 @@ export const membersAPI = {
 
   getMemberById: async (id: string) => {
     const response = await api.get(`/members/${id}`);
+    return response.data;
+  },
+};
+
+export interface MarketingListingPublic {
+  id: string;
+  ownerId: string;
+  owner?: { fullName?: string; profilePictureUrl?: string };
+  location: string;
+  dealType: string;
+  squareFootage: number;
+  priceMin: number;
+  priceMax: number;
+  estimatedArv: number;
+  imageUrls: string[];
+  status: string;
+  /** Public marketplace: `visible` appears in browse; `hidden` stays in dashboard only. */
+  visibility: 'visible' | 'hidden';
+  /** Members who clicked "I'm interested" (public aggregate count). */
+  interestCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MarketingInterestRow {
+  id: string;
+  createdAt: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  organization?: string;
+  profilePictureUrl?: string;
+}
+
+export interface MarketingListingMine extends MarketingListingPublic {
+  interests: MarketingInterestRow[];
+}
+
+/** Admin property listing row (all statuses, includes lead count) */
+export interface AdminPropertyListingRow {
+  id: string;
+  ownerId: string;
+  owner?: { email?: string; fullName?: string };
+  location: string;
+  dealType: string;
+  squareFootage: number;
+  priceMin: number;
+  priceMax: number;
+  estimatedArv: number;
+  imageUrls: string[];
+  status: 'active' | 'archived';
+  visibility: 'visible' | 'hidden';
+  interestCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Property marketing (member listings + interest records)
+export const marketingAPI = {
+  getListings: async (filters?: {
+    search?: string;
+    dealType?: string;
+    budgetMin?: number;
+    budgetMax?: number;
+    sqftMin?: number;
+    sqftMax?: number;
+    sort?: string;
+  }): Promise<{ listings: MarketingListingPublic[] }> => {
+    const params = new URLSearchParams();
+    if (filters?.search?.trim()) params.set('search', filters.search.trim());
+    if (filters?.dealType && filters.dealType !== 'all') params.set('dealType', filters.dealType);
+    if (filters?.budgetMin != null && filters.budgetMin >= 0) params.set('budgetMin', String(filters.budgetMin));
+    if (filters?.budgetMax != null && filters.budgetMax >= 0) params.set('budgetMax', String(filters.budgetMax));
+    if (filters?.sqftMin != null && filters.sqftMin >= 0) params.set('sqftMin', String(filters.sqftMin));
+    if (filters?.sqftMax != null && filters.sqftMax >= 0) params.set('sqftMax', String(filters.sqftMax));
+    if (filters?.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
+    const q = params.toString();
+    const response = await api.get(`/marketing/listings${q ? `?${q}` : ''}`);
+    return response.data.data;
+  },
+
+  getListing: async (id: string): Promise<{ listing: MarketingListingPublic }> => {
+    const response = await api.get(`/marketing/listings/${encodeURIComponent(id)}`);
+    return response.data.data;
+  },
+
+  getMyListings: async (): Promise<{ listings: MarketingListingMine[] }> => {
+    const response = await api.get('/marketing/my-listings');
+    return response.data.data;
+  },
+
+  createListing: async (formData: FormData) => {
+    const response = await api.post('/marketing/listings', formData);
+    return response.data;
+  },
+
+  updateListing: async (
+    id: string,
+    body: {
+      location?: string;
+      dealType?: string;
+      squareFootage?: number;
+      priceMin?: number;
+      priceMax?: number;
+      estimatedArv?: number;
+      status?: 'active' | 'archived';
+      visibility?: 'visible' | 'hidden';
+      imageUrls?: string[];
+    }
+  ) => {
+    const response = await api.put(`/marketing/listings/${encodeURIComponent(id)}`, body);
+    return response.data;
+  },
+
+  appendListingImages: async (id: string, formData: FormData) => {
+    const response = await api.post(`/marketing/listings/${encodeURIComponent(id)}/images`, formData);
+    return response.data;
+  },
+
+  deleteListing: async (id: string) => {
+    const response = await api.delete(`/marketing/listings/${encodeURIComponent(id)}`);
+    return response.data;
+  },
+
+  expressInterest: async (listingId: string) => {
+    const response = await api.post(`/marketing/listings/${listingId}/interest`);
     return response.data;
   },
 };

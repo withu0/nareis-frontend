@@ -13,9 +13,11 @@ import {
   ChevronRight,
   Calendar,
   TicketIcon,
+  Building2,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { ScrollToTopButton } from '@/components/ScrollToTopButton';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -44,6 +46,7 @@ export function AdminLayout({ children, stats }: AdminLayoutProps) {
     { icon: Users, label: 'User Management', path: '/admin/user', badge: stats?.pendingCount },
     { icon: Calendar, label: 'Event Management', path: '/admin/event' },
     { icon: TicketIcon, label: 'Coupon Management', path: '/admin/coupons' },
+    { icon: Building2, label: 'Property listings', path: '/admin/property-listings' },
   ];
 
   const handleNavigation = (path: string) => {
@@ -225,6 +228,8 @@ export function AdminLayout({ children, stats }: AdminLayoutProps) {
                     ? 'Event Management'
                     : location.pathname === '/admin/coupons'
                     ? 'Coupon Management'
+                    : location.pathname === '/admin/property-listings'
+                    ? 'Property listings'
                     : 'Admin Dashboard'}
                 </h1>
                 <p className="text-sm text-gray-500">
@@ -234,6 +239,8 @@ export function AdminLayout({ children, stats }: AdminLayoutProps) {
                     ? 'Manage events and registrations'
                     : location.pathname === '/admin/coupons'
                     ? 'Manage coupons and promotion codes'
+                    : location.pathname === '/admin/property-listings'
+                    ? 'Create, edit, or remove property marketing listings'
                     : 'Overview and analytics'}
                 </p>
               </div>
@@ -263,6 +270,8 @@ export function AdminLayout({ children, stats }: AdminLayoutProps) {
           {children}
         </div>
       </main>
+
+      <ScrollToTopButton />
     </div>
   );
 }

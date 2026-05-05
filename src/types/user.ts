@@ -10,7 +10,8 @@ export interface User {
   emailVerified: boolean;
   role: 'member' | 'admin';
   membershipTier?: string;
-  membershipStatus?: 'pending' | 'approved' | 'rejected' | 'active';
+  membershipStatus?: 'pending' | 'approved' | 'rejected' | 'active' | 'canceling';
+  membershipExpiresAt?: string;
   approvalStatus?: 'pending' | 'approved' | 'rejected';
   onboardingCompleted?: boolean;
   profilePictureUrl?: string;

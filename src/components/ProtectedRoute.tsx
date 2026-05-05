@@ -28,8 +28,11 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/onboarding" replace />;
   }
 
-  // Check membership status - must have active membership (payment completed)
-  if (user.membershipStatus !== 'active') {
+  // Access until end of paid period: allow active or canceling if not yet expired
+  const hasMemberAccess =
+    (user.membershipStatus === 'active' || user.membershipStatus === 'canceling') &&
+    (!user.membershipExpiresAt || new Date(user.membershipExpiresAt) > new Date());
+  if (!hasMemberAccess) {
     return <Navigate to="/onboarding" state={{ step: 6, message: 'Please complete payment to access member features.' }} replace />;
   }
 
