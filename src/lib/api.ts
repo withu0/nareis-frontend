@@ -1,6 +1,18 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosError, AxiosHeaders } from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL|| 'http://localhost:5000/api' ;
+export const BACKEND_URL = API_URL.replace('/api', ''); // Get backend base URL without /api
+
+// Helper function to get full URL for avatar/uploaded files
+export const getFileUrl = (relativePath: string | undefined | null): string => {
+  if (!relativePath) return '';
+  // If already a full URL, return as is
+  if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
+    return relativePath;
+  }
+  // If relative path, prepend backend URL
+  return `${BACKEND_URL}${relativePath}`;
+};
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
@@ -16,6 +28,14 @@ api.interceptors.request.use(
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    }
+    // Default Content-Type: application/json breaks multipart uploads — multer never sees files.
+    if (config.data instanceof FormData) {
+      if (config.headers instanceof AxiosHeaders) {
+        config.headers.delete('Content-Type');
+      } else if (config.headers && typeof config.headers === 'object') {
+        delete (config.headers as Record<string, unknown>)['Content-Type'];
+      }
     }
     return config;
   },
@@ -96,6 +116,21 @@ export const userAPI = {
     const response = await api.get('/user/subscription');
     return response.data;
   },
+
+  requestDowngrade: async (tier: string) => {
+    const response = await api.put('/user/subscription', { tier });
+    return response.data;
+  },
+
+  cancelSubscription: async () => {
+    const response = await api.post('/user/subscription/cancel');
+    return response.data;
+  },
+
+  reactivateSubscription: async () => {
+    const response = await api.post('/user/subscription/reactivate');
+    return response.data;
+  },
 };
 
 // Stripe API
@@ -151,12 +186,18 @@ export const adminAPI = {
   },
 
   createUser: async (data: any) => {
-    const response = await api.post('/admin/users', data);
+    const config = data instanceof FormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } : {};
+    const response = await api.post('/admin/users', data, config);
     return response.data;
   },
 
   updateUser: async (id: string, data: any) => {
-    const response = await api.put(`/admin/users/${id}`, data);
+    const config = data instanceof FormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } : {};
+    const response = await api.put(`/admin/users/${id}`, data, config);
     return response.data;
   },
 
@@ -172,6 +213,94 @@ export const adminAPI = {
 
   rejectUser: async (id: string) => {
     const response = await api.put(`/admin/users/${id}/reject`);
+    return response.data;
+  },
+
+  getCoupons: async () => {
+    const response = await api.get('/admin/coupons');
+    return response.data;
+  },
+
+  createCoupon: async (body: {
+    percentOff?: number;
+    amountOff?: number;
+    currency?: string;
+    duration: string;
+    durationInMonths?: number;
+    name?: string;
+    maxRedemptions?: number;
+    redeemBy?: string;
+  }) => {
+    const response = await api.post('/admin/coupons', body);
+    return response.data;
+  },
+
+  createPromotionCode: async (
+    couponId: string,
+    body: { code: string; maxRedemptions?: number; expiresAt?: string }
+  ) => {
+    const response = await api.post(`/admin/coupons/${couponId}/promotion-codes`, body);
+    return response.data;
+  },
+
+  getPromotionCodes: async (couponId?: string) => {
+    const params = couponId ? `?coupon=${encodeURIComponent(couponId)}` : '';
+    const response = await api.get(`/admin/promotion-codes${params}`);
+    return response.data;
+  },
+
+  deactivatePromotionCode: async (id: string) => {
+    const response = await api.patch(`/admin/promotion-codes/${id}`);
+    return response.data;
+  },
+
+  /** Property marketing listings (admin CRUD) */
+  getPropertyListings: async (filters?: { status?: string; search?: string; visibility?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.append('status', filters.status);
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.visibility) params.append('visibility', filters.visibility);
+    const q = params.toString();
+    const response = await api.get(`/admin/property-listings${q ? `?${q}` : ''}`);
+    return response.data;
+  },
+
+  getPropertyListing: async (id: string) => {
+    const response = await api.get(`/admin/property-listings/${encodeURIComponent(id)}`);
+    return response.data;
+  },
+
+  createPropertyListing: async (formData: FormData) => {
+    const response = await api.post('/admin/property-listings', formData);
+    return response.data;
+  },
+
+  updatePropertyListing: async (
+    id: string,
+    body: {
+      ownerId?: string;
+      location?: string;
+      dealType?: string;
+      squareFootage?: number;
+      priceMin?: number;
+      priceMax?: number;
+      estimatedArv?: number;
+      status?: 'active' | 'archived';
+      visibility?: 'visible' | 'hidden';
+      imageUrls?: string[];
+    }
+  ) => {
+    const response = await api.put(`/admin/property-listings/${encodeURIComponent(id)}`, body);
+    return response.data;
+  },
+
+  appendPropertyListingImages: async (id: string, formData: FormData) => {
+    const response = await api.post(`/admin/property-listings/${encodeURIComponent(id)}/images`, formData);
+    return response.data;
+  },
+
+  deletePropertyListing: async (id: string) => {
+    const response = await api.delete(`/admin/property-listings/${encodeURIComponent(id)}`);
     return response.data;
   },
 };
@@ -194,12 +323,18 @@ export const eventsAPI = {
   },
 
   create: async (data: any) => {
-    const response = await api.post('/events', data);
+    const config = data instanceof FormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } : {};
+    const response = await api.post('/events', data, config);
     return response.data;
   },
 
   update: async (id: string, data: any) => {
-    const response = await api.put(`/events/${id}`, data);
+    const config = data instanceof FormData ? {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    } : {};
+    const response = await api.put(`/events/${id}`, data, config);
     return response.data;
   },
 
@@ -208,8 +343,8 @@ export const eventsAPI = {
     return response.data;
   },
 
-  register: async (eventId: string) => {
-    const response = await api.post(`/events/${eventId}/register`);
+  register: async (eventId: string, data?: any) => {
+    const response = await api.post(`/events/${eventId}/register`, data || {});
     return response.data;
   },
 
@@ -225,6 +360,166 @@ export const eventsAPI = {
 
   getRegistrations: async (eventId: string) => {
     const response = await api.get(`/events/${eventId}/registrations`);
+    return response.data;
+  },
+};
+
+// Statistics API
+export const statisticsAPI = {
+  getPublicStats: async () => {
+    try {
+      const response = await api.get('/statistics/public');
+      // Backend returns: { data: {...}, error: null }
+      // But axios wraps it, so response.data = { data: {...}, error: null }
+      if (response.data.error) {
+        return { data: null, error: response.data.error };
+      }
+      return { data: response.data.data, error: null };
+    } catch (error: any) {
+      return { 
+        data: null, 
+        error: error.response?.data?.error || error.message || 'Failed to fetch statistics' 
+      };
+    }
+  },
+};
+
+// Members API
+export const membersAPI = {
+  getMembers: async () => {
+    const response = await api.get('/members');
+    return response.data;
+  },
+
+  getMemberById: async (id: string) => {
+    const response = await api.get(`/members/${id}`);
+    return response.data;
+  },
+};
+
+export interface MarketingListingPublic {
+  id: string;
+  ownerId: string;
+  owner?: { fullName?: string; profilePictureUrl?: string };
+  location: string;
+  dealType: string;
+  squareFootage: number;
+  priceMin: number;
+  priceMax: number;
+  estimatedArv: number;
+  imageUrls: string[];
+  status: string;
+  /** Public marketplace: `visible` appears in browse; `hidden` stays in dashboard only. */
+  visibility: 'visible' | 'hidden';
+  /** Members who clicked "I'm interested" (public aggregate count). */
+  interestCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MarketingInterestRow {
+  id: string;
+  createdAt: string;
+  userId: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  organization?: string;
+  profilePictureUrl?: string;
+}
+
+export interface MarketingListingMine extends MarketingListingPublic {
+  interests: MarketingInterestRow[];
+}
+
+/** Admin property listing row (all statuses, includes lead count) */
+export interface AdminPropertyListingRow {
+  id: string;
+  ownerId: string;
+  owner?: { email?: string; fullName?: string };
+  location: string;
+  dealType: string;
+  squareFootage: number;
+  priceMin: number;
+  priceMax: number;
+  estimatedArv: number;
+  imageUrls: string[];
+  status: 'active' | 'archived';
+  visibility: 'visible' | 'hidden';
+  interestCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Property marketing (member listings + interest records)
+export const marketingAPI = {
+  getListings: async (filters?: {
+    search?: string;
+    dealType?: string;
+    budgetMin?: number;
+    budgetMax?: number;
+    sqftMin?: number;
+    sqftMax?: number;
+    sort?: string;
+  }): Promise<{ listings: MarketingListingPublic[] }> => {
+    const params = new URLSearchParams();
+    if (filters?.search?.trim()) params.set('search', filters.search.trim());
+    if (filters?.dealType && filters.dealType !== 'all') params.set('dealType', filters.dealType);
+    if (filters?.budgetMin != null && filters.budgetMin >= 0) params.set('budgetMin', String(filters.budgetMin));
+    if (filters?.budgetMax != null && filters.budgetMax >= 0) params.set('budgetMax', String(filters.budgetMax));
+    if (filters?.sqftMin != null && filters.sqftMin >= 0) params.set('sqftMin', String(filters.sqftMin));
+    if (filters?.sqftMax != null && filters.sqftMax >= 0) params.set('sqftMax', String(filters.sqftMax));
+    if (filters?.sort && filters.sort !== 'newest') params.set('sort', filters.sort);
+    const q = params.toString();
+    const response = await api.get(`/marketing/listings${q ? `?${q}` : ''}`);
+    return response.data.data;
+  },
+
+  getListing: async (id: string): Promise<{ listing: MarketingListingPublic }> => {
+    const response = await api.get(`/marketing/listings/${encodeURIComponent(id)}`);
+    return response.data.data;
+  },
+
+  getMyListings: async (): Promise<{ listings: MarketingListingMine[] }> => {
+    const response = await api.get('/marketing/my-listings');
+    return response.data.data;
+  },
+
+  createListing: async (formData: FormData) => {
+    const response = await api.post('/marketing/listings', formData);
+    return response.data;
+  },
+
+  updateListing: async (
+    id: string,
+    body: {
+      location?: string;
+      dealType?: string;
+      squareFootage?: number;
+      priceMin?: number;
+      priceMax?: number;
+      estimatedArv?: number;
+      status?: 'active' | 'archived';
+      visibility?: 'visible' | 'hidden';
+      imageUrls?: string[];
+    }
+  ) => {
+    const response = await api.put(`/marketing/listings/${encodeURIComponent(id)}`, body);
+    return response.data;
+  },
+
+  appendListingImages: async (id: string, formData: FormData) => {
+    const response = await api.post(`/marketing/listings/${encodeURIComponent(id)}/images`, formData);
+    return response.data;
+  },
+
+  deleteListing: async (id: string) => {
+    const response = await api.delete(`/marketing/listings/${encodeURIComponent(id)}`);
+    return response.data;
+  },
+
+  expressInterest: async (listingId: string) => {
+    const response = await api.post(`/marketing/listings/${listingId}/interest`);
     return response.data;
   },
 };

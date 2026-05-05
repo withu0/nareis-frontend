@@ -4,6 +4,7 @@ import { Menu, X, LogOut, User as UserIcon, ChevronDown, Settings, LayoutDashboa
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import NotificationBell from '@/components/notifications/NotificationBell';
+import { getFileUrl } from '@/lib/api';
 
 const Navigation: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -29,11 +30,13 @@ const Navigation: React.FC = () => {
     setMobileResourcesOpen(false);
   };
 
-  const resourcePages = ['/advocacy', '/member-directory', '/resources', '/market-reports', '/news', '/jobs', '/forums', '/videos', '/referral-program', '/chapter-leaderboard', '/certification'];
+  const resourcePages = ['/advocacy', '/member-directory', '/resources', '/market-reports', '/property-marketing', '/my-property-marketing', '/news', '/jobs', '/forums', '/videos', '/referral-program', '/chapter-leaderboard', '/certification'];
 
 
 
-  const isResourcesActive = resourcePages.includes(location.pathname);
+  const isResourcesActive =
+    resourcePages.includes(location.pathname) ||
+    location.pathname.startsWith('/property-marketing/');
 
   return (
     <nav className="bg-white shadow-sm sticky top-0 z-50 border-b-2 border-red-600">
@@ -86,6 +89,7 @@ const Navigation: React.FC = () => {
                   <DropdownLink onClick={() => navigateToPage('/resources')}>Resource Library</DropdownLink>
                   <DropdownLink onClick={() => navigateToPage('/news')}>Latest News & Insights</DropdownLink>
                   <DropdownLink onClick={() => navigateToPage('/market-reports')}>Market Reports</DropdownLink>
+                  <DropdownLink onClick={() => navigateToPage('/property-marketing')}>Property Marketing</DropdownLink>
 
                   <DropdownLink onClick={() => navigateToPage('/jobs')}>Job Board</DropdownLink>
                   <DropdownLink onClick={() => navigateToPage('/forums')}>Discussion Forums</DropdownLink>
@@ -133,7 +137,7 @@ const Navigation: React.FC = () => {
                     {/* User Avatar */}
                     {user.profilePictureUrl ? (
                       <img 
-                        src={user.profilePictureUrl} 
+                        src={getFileUrl(user.profilePictureUrl)} 
                         alt={user.fullName}
                         className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
                       />
@@ -261,6 +265,7 @@ const Navigation: React.FC = () => {
                   <MobileNavLink onClick={() => navigateToPage('/resources')}>Resource Library</MobileNavLink>
                   <MobileNavLink onClick={() => navigateToPage('/news')}>Latest News & Insights</MobileNavLink>
                   <MobileNavLink onClick={() => navigateToPage('/market-reports')}>Market Reports</MobileNavLink>
+                  <MobileNavLink onClick={() => navigateToPage('/property-marketing')}>Property Marketing</MobileNavLink>
 
                   <MobileNavLink onClick={() => navigateToPage('/jobs')}>Job Board</MobileNavLink>
                   <MobileNavLink onClick={() => navigateToPage('/forums')}>Discussion Forums</MobileNavLink>
@@ -288,7 +293,7 @@ const Navigation: React.FC = () => {
                     {/* User Avatar */}
                     {user.profilePictureUrl ? (
                       <img 
-                        src={user.profilePictureUrl} 
+                        src={getFileUrl(user.profilePictureUrl)} 
                         alt={user.fullName}
                         className="w-10 h-10 rounded-full object-cover border-2 border-gray-200"
                       />

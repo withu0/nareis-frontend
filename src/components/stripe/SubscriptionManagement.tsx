@@ -9,23 +9,37 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import BillingPortalButton from './BillingPortalButton';
 
-const tiers = [
-  { id: 'basic', name: 'Basic', price: 99, priceId: 'price_basic_yearly', features: ['Member directory', 'Newsletter', 'Forums'] },
-  { id: 'professional', name: 'Professional', price: 299, priceId: 'price_pro_yearly', features: ['All Basic', 'Events', 'Webinars', 'Priority support'] },
-  { id: 'premium', name: 'Premium', price: 599, priceId: 'price_premium_yearly', features: ['All Pro', 'Unlimited events', 'Mentorship', 'Leadership programs'] }
-];
+type TierInfo = { id: string; name: string; amount: number; isRecurring?: boolean };
 
 export default function SubscriptionManagement() {
   const { user } = useAuth();
-  const [subscription, setSubscription] = useState<any>(null);
+  const [tiers, setTiers] = useState<TierInfo[]>([]);
+  const [subscription, setSubscription] = useState<{
+    membership_tier?: string;
+    membership_status?: string;
+    stripe_subscription_id?: string;
+    stripe_customer_id?: string;
+    renewal_date?: string;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [stripeCustomerId, setStripeCustomerId] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
       fetchSubscription();
+      fetchTiers();
     }
   }, [user]);
+
+  const fetchTiers = async () => {
+    try {
+      const res = await stripeAPI.getTiers();
+      if (res.data && Array.isArray(res.data)) setTiers(res.data);
+    } catch (e) {
+      console.error('Failed to fetch tiers:', e);
+    }
+  };
 
   const fetchSubscription = async () => {
     if (!user) return;
@@ -38,6 +52,7 @@ export default function SubscriptionManagement() {
           membership_status: response.data.membershipStatus,
           stripe_subscription_id: response.data.stripeSubscriptionId,
           stripe_customer_id: response.data.stripeCustomerId,
+          renewal_date: response.data.membershipExpiresAt,
         });
         setStripeCustomerId(response.data.stripeCustomerId || null);
       }
@@ -48,113 +63,76 @@ export default function SubscriptionManagement() {
     }
   };
 
-
-  const handleUpgrade = async (newTier: string, newPriceId: string) => {
-    setLoading(true);
+  const handleUpgrade = async (newTier: string) => {
+    setActionLoading(`upgrade-${newTier}`);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data, error } = await supabase.functions.invoke('manage-subscription', {
-        body: { 
-          action: 'upgrade', 
-          subscriptionId: subscription?.stripe_subscription_id,
-          newPriceId,
-          userId: user.id
-        }
+      const origin = window.location.origin;
+      const response = await stripeAPI.createCheckoutSession({
+        tier: newTier,
+        successUrl: `${origin}/profile?upgrade=success&session_id={CHECKOUT_SESSION_ID}&tier=${newTier}`,
+        cancelUrl: `${origin}/profile?upgrade=cancel`,
       });
-
-      if (error) throw error;
-      toast.success('Subscription upgraded successfully!');
-      fetchSubscription();
+      if (response.data?.url) {
+        window.location.href = response.data.url;
+        return;
+      }
+      toast.error(response.error || 'Could not start checkout');
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.response?.data?.error || err.message || 'Upgrade failed');
+    } finally {
+      setActionLoading(null);
     }
-    setLoading(false);
   };
 
-  const handleDowngrade = async (newTier: string, newPriceId: string) => {
-    setLoading(true);
+  const handleDowngrade = async (newTier: string) => {
+    setActionLoading(`downgrade-${newTier}`);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data, error } = await supabase.functions.invoke('manage-subscription', {
-        body: { 
-          action: 'downgrade', 
-          subscriptionId: subscription?.stripe_subscription_id,
-          newPriceId,
-          userId: user.id
-        }
-      });
-
-      if (error) throw error;
-      toast.success('Subscription will downgrade at next billing period');
+      await userAPI.requestDowngrade(newTier);
+      toast.success('Plan updated.');
       fetchSubscription();
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.response?.data?.error || err.message || 'Downgrade failed');
+    } finally {
+      setActionLoading(null);
     }
-    setLoading(false);
   };
 
   const handleCancel = async () => {
-    if (!confirm('Are you sure you want to cancel your subscription?')) return;
-    
-    setLoading(true);
+    if (!confirm('Are you sure you want to cancel your subscription? Access continues until your membership period ends.')) return;
+    setActionLoading('cancel');
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { error } = await supabase.functions.invoke('manage-subscription', {
-        body: { 
-          action: 'cancel',
-          subscriptionId: subscription?.stripe_subscription_id,
-          userId: user.id
-        }
-      });
-
-      if (error) throw error;
-      toast.success('Subscription cancelled. Access continues until renewal date.');
+      await userAPI.cancelSubscription();
+      toast.success('Subscription cancelled. Access continues until the end of your membership period.');
       fetchSubscription();
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.response?.data?.error || err.message || 'Cancel failed');
+    } finally {
+      setActionLoading(null);
     }
-    setLoading(false);
   };
 
   const handleReactivate = async () => {
-    setLoading(true);
+    setActionLoading('reactivate');
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { error } = await supabase.functions.invoke('manage-subscription', {
-        body: { 
-          action: 'reactivate',
-          subscriptionId: subscription?.stripe_subscription_id,
-          userId: user.id
-        }
-      });
-
-      if (error) throw error;
-      toast.success('Subscription reactivated!');
+      await userAPI.reactivateSubscription();
+      toast.success('Subscription reactivated.');
       fetchSubscription();
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.response?.data?.error || err.message || 'Reactivate failed');
+    } finally {
+      setActionLoading(null);
     }
-    setLoading(false);
   };
-
 
   if (loading) return <div>Loading...</div>;
 
-  const currentTier = tiers.find(t => t.id === subscription?.membership_tier);
+  const currentTier = tiers.find((t) => t.id === subscription?.membership_tier);
   const isActive = subscription?.membership_status === 'active';
   const isCanceling = subscription?.membership_status === 'canceling';
+  const currentAmount = currentTier?.amount ?? 0;
 
   return (
     <div className="space-y-6">
-      {/* Billing Portal Card */}
       <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-transparent">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -166,7 +144,7 @@ export default function SubscriptionManagement() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <BillingPortalButton 
+          <BillingPortalButton
             stripeCustomerId={stripeCustomerId || undefined}
             variant="default"
             className="w-full sm:w-auto"
@@ -185,7 +163,7 @@ export default function SubscriptionManagement() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-2xl font-bold">{currentTier?.name || 'No Plan'}</h3>
-              <p className="text-muted-foreground">${currentTier?.price || 0}/year</p>
+              <p className="text-muted-foreground">${currentTier?.amount ?? 0} per year</p>
             </div>
             <Badge variant={isActive ? 'default' : 'secondary'}>
               {subscription?.membership_status || 'pending'}
@@ -195,40 +173,32 @@ export default function SubscriptionManagement() {
           {subscription?.renewal_date && (
             <div className="flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4" />
-              <span>Renews on {new Date(subscription.renewal_date).toLocaleDateString()}</span>
+              <span>Membership expires {new Date(subscription.renewal_date).toLocaleDateString()}</span>
             </div>
           )}
 
-          {isCanceling && (
+          {isCanceling && subscription?.renewal_date && (
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Your subscription will end on {new Date(subscription.renewal_date).toLocaleDateString()}
+                Your membership will end on {new Date(subscription.renewal_date).toLocaleDateString()}
               </AlertDescription>
             </Alert>
           )}
 
-          <div className="pt-4 border-t">
-            <h4 className="font-semibold mb-2">Features</h4>
-            <ul className="space-y-1">
-              {currentTier?.features.map((f, i) => (
-                <li key={i} className="text-sm text-muted-foreground">• {f}</li>
-              ))}
-            </ul>
-          </div>
-
           <div className="flex gap-2 flex-wrap">
-            <BillingPortalButton 
-              stripeCustomerId={stripeCustomerId || undefined}
-              variant="outline"
-            />
+            <BillingPortalButton stripeCustomerId={stripeCustomerId || undefined} variant="outline" />
             {isActive && (
-              <Button variant="destructive" onClick={handleCancel}>
+              <Button
+                variant="destructive"
+                onClick={handleCancel}
+                disabled={!!actionLoading}
+              >
                 Cancel Subscription
               </Button>
             )}
             {isCanceling && (
-              <Button onClick={handleReactivate}>
+              <Button onClick={handleReactivate} disabled={!!actionLoading}>
                 Reactivate Subscription
               </Button>
             )}
@@ -236,47 +206,58 @@ export default function SubscriptionManagement() {
         </CardContent>
       </Card>
 
-      {isActive && (
+      {isActive && tiers.length > 0 && (
         <>
           <Card>
             <CardHeader>
               <CardTitle>Upgrade Your Plan</CardTitle>
-              <CardDescription>Get more features and benefits</CardDescription>
+              <CardDescription>Upgrade to a higher tier (billed annually). You can use a promotion code at checkout.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {tiers.filter(t => t.price > (currentTier?.price || 0)).map(tier => (
-                <div key={tier.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-semibold">{tier.name}</h4>
-                    <p className="text-sm text-muted-foreground">${tier.price}/year</p>
+              {tiers
+                .filter((t) => t.amount > currentAmount)
+                .map((tier) => (
+                  <div key={tier.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-semibold">{tier.name}</h4>
+                      <p className="text-sm text-muted-foreground">${tier.amount} one-time</p>
+                    </div>
+                    <Button
+                      onClick={() => handleUpgrade(tier.id)}
+                      disabled={actionLoading === `upgrade-${tier.id}`}
+                    >
+                      <TrendingUp className="w-4 h-4 mr-2" />
+                      Upgrade
+                    </Button>
                   </div>
-                  <Button onClick={() => handleUpgrade(tier.id, tier.priceId)}>
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Upgrade
-                  </Button>
-                </div>
-              ))}
+                ))}
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
               <CardTitle>Downgrade Your Plan</CardTitle>
-              <CardDescription>Changes take effect at next billing period</CardDescription>
+              <CardDescription>Change to a lower tier. Takes effect immediately.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {tiers.filter(t => t.price < (currentTier?.price || 0)).map(tier => (
-                <div key={tier.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-semibold">{tier.name}</h4>
-                    <p className="text-sm text-muted-foreground">${tier.price}/year</p>
+              {tiers
+                .filter((t) => t.amount < currentAmount)
+                .map((tier) => (
+                  <div key={tier.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div>
+                      <h4 className="font-semibold">{tier.name}</h4>
+                      <p className="text-sm text-muted-foreground">${tier.amount} per year</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => handleDowngrade(tier.id)}
+                      disabled={actionLoading === `downgrade-${tier.id}`}
+                    >
+                      <TrendingDown className="w-4 h-4 mr-2" />
+                      Downgrade
+                    </Button>
                   </div>
-                  <Button variant="outline" onClick={() => handleDowngrade(tier.id, tier.priceId)}>
-                    <TrendingDown className="w-4 h-4 mr-2" />
-                    Downgrade
-                  </Button>
-                </div>
-              ))}
+                ))}
             </CardContent>
           </Card>
         </>
@@ -284,4 +265,3 @@ export default function SubscriptionManagement() {
     </div>
   );
 }
-

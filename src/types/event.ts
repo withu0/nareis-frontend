@@ -19,6 +19,9 @@ export interface Event {
   updated_at: string;
   registered_count?: number;
   waitlist_count?: number;
+  isFree: boolean;
+  price?: number;
+  memberOnly: boolean;
 }
 
 export interface EventRegistration {

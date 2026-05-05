@@ -1,4 +1,4 @@
-import { eventsAPI } from './api';
+import { eventsAPI, BACKEND_URL } from './api';
 import { Event } from '@/types/event';
 import { networkingEvents } from '@/data/networkingEvents';
 
@@ -18,12 +18,34 @@ export interface BackendEvent {
   registrationDeadline?: string;
   status: string;
   imageUrl?: string;
+  isFree: boolean;
+  price?: number;
+  memberOnly: boolean;
+  waitlistEnabled?: boolean;
   registeredCount: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export function transformBackendEvent(event: BackendEvent): Event {
+  // Convert relative image URL to absolute URL
+  const getImageUrl = (imageUrl?: string) => {
+    if (!imageUrl) {
+      console.log('⚠️ No imageUrl for event:', event.title, '- using placeholder');
+      // Use reliable placeholder with event title
+      return `https://placehold.co/800x400/e2e8f0/475569?text=${encodeURIComponent(event.title || 'Event')}`;
+    }
+    // If it's already an absolute URL, return as is
+    if (imageUrl.startsWith('http')) {
+      console.log('✅ Image URL is absolute:', imageUrl);
+      return imageUrl;
+    }
+    // If it's a relative path, prepend backend URL
+    const fullUrl = `${BACKEND_URL}${imageUrl}`;
+    console.log('🔄 Transformed image URL:', imageUrl, '->', fullUrl);
+    return fullUrl;
+  };
+
   return {
     id: event.id,
     title: event.title,
@@ -37,16 +59,20 @@ export function transformBackendEvent(event: BackendEvent): Event {
     organizer: typeof event.organizerId === 'object' ? event.organizerId.fullName : 'NAREIS',
     capacity: event.maxAttendees || undefined,
     registered_count: event.registeredCount || 0,
-    image_url: event.imageUrl || 'https://d64gsuwffb70l.cloudfront.net/default-event.webp',
+    image_url: getImageUrl(event.imageUrl),
     is_featured: false,
     registration_deadline: event.registrationDeadline || undefined,
-    status: (event.status as Event['status']) || 'upcoming'
+    status: (event.status as Event['status']) || 'upcoming',
+    isFree: event.isFree !== undefined ? event.isFree : true,
+    price: event.price,
+    memberOnly: event.memberOnly || false,
   };
 }
 
 export async function fetchEvents(): Promise<{ data: Event[]; fromDatabase: boolean }> {
   try {
-    const response = await eventsAPI.getAll({ upcoming: true });
+    // Fetch all events (not just upcoming)
+    const response = await eventsAPI.getAll();
 
     if (response.data?.events && response.data.events.length > 0) {
       return {

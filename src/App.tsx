@@ -19,6 +19,9 @@ import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import UserManagement from "./pages/UserManagement";
+import EventManagementAdmin from "./pages/EventManagementAdmin";
+import CouponManagementAdmin from "./pages/CouponManagementAdmin";
+import PropertyManagementAdmin from "./pages/PropertyManagementAdmin";
 import Events from "./pages/Events";
 import Advocacy from "./pages/Advocacy";
 import Resources from "./pages/Resources";
@@ -36,6 +39,9 @@ import PendingApproval from "./pages/PendingApproval";
 import Certification from "./pages/Certification";
 import VerifyCertification from "./pages/VerifyCertification";
 import MarketReports from "./pages/MarketReports";
+import PropertyMarketing from "./pages/PropertyMarketing";
+import PropertyMarketingDetail from "./pages/PropertyMarketingDetail";
+import MyPropertyMarketing from "./pages/MyPropertyMarketing";
 import MemberAnalytics from "./pages/MemberAnalytics";
 import Messages from "./pages/Messages";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -74,7 +80,12 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
             <AuthProvider>
               {/* Session diagnostic - only shows in development */}
               {/* <SessionDiagnostic /> */}
@@ -113,10 +124,13 @@ const App = () => {
                 {/* Protected member routes */}
                 <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                 <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/events" element={<ProtectedRoute><Events /></ProtectedRoute>} />
+                <Route path="/events" element={<Events />} />
                 <Route path="/advocacy" element={<ProtectedRoute><Advocacy /></ProtectedRoute>} />
                 <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
                 <Route path="/market-reports" element={<ProtectedRoute><MarketReports /></ProtectedRoute>} />
+                <Route path="/property-marketing/:id" element={<ProtectedRoute><PropertyMarketingDetail /></ProtectedRoute>} />
+                <Route path="/property-marketing" element={<ProtectedRoute><PropertyMarketing /></ProtectedRoute>} />
+                <Route path="/my-property-marketing" element={<ProtectedRoute><MyPropertyMarketing /></ProtectedRoute>} />
                 <Route path="/find-local-chapter" element={<ProtectedRoute><FindLocalChapter /></ProtectedRoute>} />
                 <Route path="/member-directory" element={<ProtectedRoute><MemberDirectory /></ProtectedRoute>} />
                 <Route path="/members/:id" element={<ProtectedRoute><MemberProfile /></ProtectedRoute>} />
@@ -130,6 +144,9 @@ const App = () => {
                 {/* Admin routes */}
                 <Route path="/admin" element={<AdminRoute><Admin /></AdminRoute>} />
                 <Route path="/admin/user" element={<AdminRoute><UserManagement /></AdminRoute>} />
+                <Route path="/admin/event" element={<AdminRoute><EventManagementAdmin /></AdminRoute>} />
+                <Route path="/admin/coupons" element={<AdminRoute><CouponManagementAdmin /></AdminRoute>} />
+                <Route path="/admin/property-listings" element={<AdminRoute><PropertyManagementAdmin /></AdminRoute>} />
                 <Route path="/admin/featured-memberships" element={<AdminRoute><FeaturedMembershipsAdmin /></AdminRoute>} />
                 <Route path="/admin/advertisements" element={<AdminRoute><AdManagement /></AdminRoute>} />
                 <Route path="/admin/approval-queue" element={<AdminRoute><ApprovalQueue /></AdminRoute>} />

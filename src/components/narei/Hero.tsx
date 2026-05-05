@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, Users, BookOpen, Award } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { statisticsAPI } from '@/lib/api';
 import { Skeleton } from '@/components/ui/skeleton';
 import HeroStatisticsModal from './HeroStatisticsModal';
 
@@ -28,47 +28,18 @@ const Hero: React.FC = () => {
       setHasError(false);
       
       try {
-        // Fetch upcoming events count (events with date >= today)
-        const today = new Date().toISOString().split('T')[0];
-        const { count: eventsCount, error: eventsError } = await supabase
-          .from('events')
-          .select('*', { count: 'exact', head: true })
-          .gte('date', today);
+        const { data, error } = await statisticsAPI.getPublicStats();
         
-        if (eventsError) {
-          console.error('Error fetching upcoming event count:', eventsError);
+        if (error) {
+          console.error('Error fetching statistics:', error);
           setHasError(true);
-        } else {
-          setUpcomingEventCount(eventsCount || 0);
+        } else if (data) {
+          setUpcomingEventCount(data.upcomingEvents || 0);
+          setResourceCount(data.resources || 0);
+          setActiveMemberCount(data.activeMembers || 0);
         }
-
-        // Fetch resource count
-        const { count: resourcesCount, error: resourcesError } = await supabase
-          .from('resources')
-          .select('*', { count: 'exact', head: true });
-        
-        if (resourcesError) {
-          console.error('Error fetching resource count:', resourcesError);
-          setHasError(true);
-        } else {
-          setResourceCount(resourcesCount || 0);
-        }
-
-        // Fetch active members count (approved members only)
-        const { count: membersCount, error: membersError } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true })
-          .eq('approval_status', 'approved');
-        
-        if (membersError) {
-          console.error('Error fetching active member count:', membersError);
-          setHasError(true);
-        } else {
-          setActiveMemberCount(membersCount || 0);
-        }
-
       } catch (err) {
-        console.error('Error:', err);
+        console.error('Error fetching statistics:', err);
         setHasError(true);
       } finally {
         setIsLoading(false);

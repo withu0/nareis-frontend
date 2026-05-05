@@ -17,6 +17,7 @@ import AdminSettings from '@/components/admin/AdminSettings';
 import { Badge } from '@/components/ui/badge';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import EventManagement from '@/components/admin/EventManagement';
+import CouponManagement from '@/components/admin/CouponManagement';
 
 import { adminAPI } from '@/lib/api';
 
@@ -113,6 +114,7 @@ export default function Admin() {
             <TabsTrigger value="revenue">Revenue</TabsTrigger>
             <TabsTrigger value="behavior">Behavior</TabsTrigger>
             <TabsTrigger value="cms">CMS</TabsTrigger>
+            <TabsTrigger value="coupons">Coupons</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -150,6 +152,10 @@ export default function Admin() {
           
           <TabsContent value="cms">
             <ContentManagement />
+          </TabsContent>
+          
+          <TabsContent value="coupons">
+            <CouponManagement />
           </TabsContent>
           
           <TabsContent value="settings">

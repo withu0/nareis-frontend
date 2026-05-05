@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { Event } from '@/types/event';
 import { fetchEvents } from '@/lib/eventService';
+import { eventsAPI } from '@/lib/api';
 import { Plus, Calendar, Users, MessageSquare, Grid, CalendarDays } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
@@ -36,6 +37,8 @@ export default function Events() {
     cost: 'all',
   });
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [attendees, setAttendees] = useState<any[]>([]);
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [showRegistration, setShowRegistration] = useState(false);
   const [showCreateEvent, setShowCreateEvent] = useState(false);
   const [showEventDetails, setShowEventDetails] = useState(false);
@@ -81,14 +84,23 @@ export default function Events() {
     scrollableRef,
   } = usePullToRefresh({ onRefresh: handleRefresh });
 
-  const mockAttendees = [
-    { id: '1', name: 'John Smith', email: 'john@example.com', membershipTier: 'Enterprise Member', checkedIn: true },
-    { id: '2', name: 'Sarah Johnson', email: 'sarah@example.com', membershipTier: 'Professional Member', checkedIn: true },
-    { id: '3', name: 'Michael Brown', email: 'michael@example.com', membershipTier: 'Foundation Member', checkedIn: false },
-    { id: '4', name: 'Emily Davis', email: 'emily@example.com', membershipTier: 'Growth Member', checkedIn: true }
-  ];
-
-
+  const loadAttendees = async (eventId: string) => {
+    setLoadingAttendees(true);
+    try {
+      const response = await eventsAPI.getRegistrations(eventId);
+      if (response.data?.registrations) {
+        setAttendees(response.data.registrations);
+      } else {
+        setAttendees([]);
+      }
+    } catch (error) {
+      console.error('Error loading attendees:', error);
+      setAttendees([]);
+      toast.error('Failed to load attendees');
+    } finally {
+      setLoadingAttendees(false);
+    }
+  };
 
   const filteredEvents = useMemo(() => {
     return events.filter(event => {
@@ -118,6 +130,10 @@ export default function Events() {
   };
 
   const handleRegister = (eventId: string) => {
+    if (!user) {
+      toast.error('Please log in to register for events');
+      return;
+    }
     const event = events.find(e => e.id === eventId);
     if (event) {
       setSelectedEvent(event);
@@ -126,8 +142,13 @@ export default function Events() {
   };
 
   const handleViewDetails = (event: Event) => {
+    if (!user) {
+      toast.error('Please log in to view event details');
+      return;
+    }
     setSelectedEvent(event);
     setShowEventDetails(true);
+    loadAttendees(event.id); // Load attendees when opening event details
   };
 
   const handleSendFollowUp = () => {
@@ -192,8 +213,21 @@ export default function Events() {
         filters={filters}
         onFilterChange={setFilters}
         onExport={handleExport}
-        onOpenSaved={() => setShowSavedSearches(true)}
-        onOpenHistory={() => setShowSearchHistory(true)}
+        onOpenSaved={() => {
+          if (!user) {
+            toast.error('Please log in to access saved searches');
+            return;
+          }
+          setShowSavedSearches(true);
+        }}
+        onOpenHistory={() => {
+          if (!user) {
+            toast.error('Please log in to access search history');
+            return;
+          }
+          setShowSearchHistory(true);
+        }}
+        user={user}
       />
 
       <div className="my-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -228,8 +262,8 @@ export default function Events() {
       {viewMode === 'grid' ? (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredEvents.map(event => (
-            <div key={event.id} onClick={() => handleViewDetails(event)} className="cursor-pointer">
-              <EventCard event={event} onRegister={handleRegister} />
+            <div key={event.id} onClick={() => handleViewDetails(event)} className={user ? "cursor-pointer" : "cursor-not-allowed opacity-75"}>
+              <EventCard event={event} onRegister={handleRegister} user={user} />
             </div>
           ))}
         </div>
@@ -243,6 +277,7 @@ export default function Events() {
 
 
       {/* Event Details Dialog */}
+      {user && (
       <Dialog open={showEventDetails} onOpenChange={setShowEventDetails}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -281,14 +316,30 @@ export default function Events() {
                 )}
               </TabsContent>
               <TabsContent value="attendees">
-                <EventAttendeeList attendees={mockAttendees} capacity={selectedEvent.capacity} />
+                {loadingAttendees ? (
+                  <div className="space-y-4">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-4 p-4 border rounded-lg">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-3 w-1/3" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <EventAttendeeList attendees={attendees} capacity={selectedEvent.capacity} />
+                )}
               </TabsContent>
             </Tabs>
           )}
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Registration Dialog */}
+      {user && (
       <Dialog open={showRegistration} onOpenChange={setShowRegistration}>
         <DialogContent>
           <DialogHeader>
@@ -299,25 +350,38 @@ export default function Events() {
               eventId={selectedEvent.id}
               eventTitle={selectedEvent.title}
               userEmail={user.email}
-              userName={user.name || ''}
-              onSuccess={() => setShowRegistration(false)}
+              userName={user.fullName || ''}
+              onSuccess={() => {
+                setShowRegistration(false);
+                loadEvents(); // Reload events to update registration count
+                if (selectedEvent) {
+                  loadAttendees(selectedEvent.id); // Reload attendees list
+                }
+              }}
             />
           )}
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Create Event Dialog */}
+      {user && (
       <Dialog open={showCreateEvent} onOpenChange={setShowCreateEvent}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Networking Event</DialogTitle>
             <DialogDescription>Create a new event for your chapter members</DialogDescription>
           </DialogHeader>
-          <EventCreationForm onSuccess={() => setShowCreateEvent(false)} />
+          <EventCreationForm onSuccess={() => {
+            setShowCreateEvent(false);
+            loadEvents(); // Reload events to show the newly created event
+          }} />
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Follow-Up Dialog */}
+      {user && (
       <Dialog open={showFollowUp} onOpenChange={setShowFollowUp}>
         <DialogContent>
           <DialogHeader>
@@ -335,7 +399,10 @@ export default function Events() {
           </div>
         </DialogContent>
       </Dialog>
+      )}
 
+      {user && (
+      <>
       <SavedSearchesDialog
         open={showSavedSearches}
         onOpenChange={setShowSavedSearches}
@@ -349,6 +416,8 @@ export default function Events() {
         onApplySearch={(query) => setFilters({ ...filters, search: query })}
         section="events"
       />
+      </>
+      )}
     </div>
   );
 }

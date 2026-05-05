@@ -13,12 +13,12 @@ interface PaymentStepProps {
 }
 
 const tierPrices: Record<string, { amount: number; priceId: string; isRecurring: boolean }> = {
-  foundation: { amount: 495, priceId: 'price_foundation', isRecurring: false },
-  growth: { amount: 995, priceId: 'price_growth', isRecurring: false },
-  stakeholder: { amount: 1495, priceId: 'price_stakeholder', isRecurring: false },
-  professional: { amount: 1995, priceId: 'price_professional', isRecurring: false },
-  enterprise: { amount: 3995, priceId: 'price_enterprise', isRecurring: false },
-  founding: { amount: 5995, priceId: 'price_founding', isRecurring: false }
+  foundation: { amount: 495, priceId: 'price_foundation', isRecurring: true },
+  growth: { amount: 995, priceId: 'price_growth', isRecurring: true },
+  stakeholder: { amount: 1495, priceId: 'price_stakeholder', isRecurring: true },
+  professional: { amount: 1995, priceId: 'price_professional', isRecurring: true },
+  enterprise: { amount: 3995, priceId: 'price_enterprise', isRecurring: true },
+  founding: { amount: 5995, priceId: 'price_founding', isRecurring: true }
 };
 
 const tierNames: Record<string, string> = {
@@ -56,10 +56,13 @@ export default function PaymentStep({ data, onComplete }: PaymentStepProps) {
       console.log('[STRIPE] User ID:', user.id);
       console.log('[STRIPE] Tier:', tier);
       
+      const searchParams = new URLSearchParams(window.location.search);
+      const promotionCode = searchParams.get('code') || searchParams.get('promo') || undefined;
       const response = await stripeAPI.createCheckoutSession({
         tier,
         successUrl: `${window.location.origin}/onboarding?payment=success&session_id={CHECKOUT_SESSION_ID}&tier=${tier}`,
         cancelUrl: `${window.location.origin}/onboarding?payment=cancel`,
+        ...(promotionCode ? { promotionCode } : {}),
       });
 
       if (response.error) {

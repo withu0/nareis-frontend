@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/lib/supabase';
+import { eventsAPI } from '@/lib/api';
 
 interface EventRegistrationFormProps {
   eventId: string;
@@ -28,26 +28,26 @@ export function EventRegistrationForm({ eventId, eventTitle, userEmail, userName
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke('event-registration', {
-        body: {
-          eventId,
-          userEmail,
-          userName,
-          ...formData
-        }
+      const response = await eventsAPI.register(eventId, {
+        numberOfGuests: formData.guestsCount,
+        dietaryRequirements: formData.dietaryRequirements,
+        specialRequests: formData.specialRequests,
       });
 
-      if (error) throw error;
+      if (response.error) {
+        throw new Error(response.error);
+      }
 
       toast({
         title: 'Registration Successful',
-        description: `You've been registered for ${eventTitle}`
+        description: response.data?.message || `You've been registered for ${eventTitle}`,
       });
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Registration error:', error);
       toast({
         title: 'Registration Failed',
-        description: error.message,
+        description: error.response?.data?.error || error.message || 'Failed to register',
         variant: 'destructive'
       });
     } finally {
